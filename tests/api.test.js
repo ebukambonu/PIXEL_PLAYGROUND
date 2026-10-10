@@ -107,6 +107,20 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       assert.equal(res.status, 409);
     },
   );
+  await t.test("explicit ukn exception gains admin without marking its email verified", async () => {
+    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburnacademy.org.ukn',username:'ExceptionOwner',password:'exception owner test password'});
+    assert.equal(registered.status,200);
+    assert.equal(registered.data.user.admin,true);
+    assert.equal(registered.data.user.verified,false);
+    assert.equal((await req('/admin','GET',undefined,registered.cookie)).status,200);
+    assert.equal((await req('/admin/users','PATCH',{id:registered.data.user.id,banned:true},registered.cookie)).status,400);
+    const sent=await req('/messages','POST',{room:1,content:'Exception admin badge'},registered.cookie);
+    assert.equal(sent.status,200);
+    const message=(await req('/messages?room=1')).data.messages.find(m=>m.id===sent.data.id);
+    assert.equal(message.admin,true);
+    assert.equal(message.verified,0);
+    await req('/admin/messages','DELETE',{id:sent.data.id},registered.cookie);
+  });
   await t.test(
     "unverified owner email cannot acquire admin powers",
     async () => {

