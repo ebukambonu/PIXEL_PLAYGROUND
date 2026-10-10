@@ -107,8 +107,8 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       assert.equal(res.status, 409);
     },
   );
-  await t.test("explicit ukn exception gains admin without marking its email verified", async () => {
-    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburnacademy.org.ukn',username:'ExceptionOwner',password:'exception owner test password'});
+  await t.test("explicit corrected-email exception gains admin without marking its email verified", async () => {
+    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburn.org.uk',username:'ExceptionOwner',password:'exception owner test password'});
     assert.equal(registered.status,200);
     assert.equal(registered.data.user.admin,true);
     assert.equal(registered.data.user.verified,false);
@@ -120,6 +120,15 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     assert.equal(message.admin,true);
     assert.equal(message.verified,0);
     await req('/admin/messages','DELETE',{id:sent.data.id},registered.cookie);
+  });
+  await t.test("mistaken ukn address no longer gets admin even after verification", async () => {
+    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburnacademy.org.ukn',username:'MistakenOwner',password:'mistaken address test password'});
+    assert.equal(registered.data.user.admin,false);
+    const db=new DatabaseSync(database);
+    db.prepare('UPDATE users SET verified=1 WHERE id=?').run(registered.data.user.id);
+    db.close();
+    assert.equal((await req('/bootstrap','GET',undefined,registered.cookie)).data.user.admin,false);
+    assert.equal((await req('/admin','GET',undefined,registered.cookie)).status,403);
   });
   await t.test(
     "unverified owner email cannot acquire admin powers",

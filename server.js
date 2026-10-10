@@ -68,7 +68,7 @@ for (const [key, value] of Object.entries({
   await db
     .prepare("INSERT OR IGNORE INTO settings VALUES (?,?)")
     .run(key, JSON.stringify(value));
-export const UNVERIFIED_ADMIN_EMAIL = "somkene.ebukambonu@millburnacademy.org.ukn";
+export const UNVERIFIED_ADMIN_EMAIL = "somkene.ebukambonu@millburn.org.uk";
 export const ADMINS = new Set([
   UNVERIFIED_ADMIN_EMAIL,
   "somkene.ebukambonu@millburnacademy.org.uk",

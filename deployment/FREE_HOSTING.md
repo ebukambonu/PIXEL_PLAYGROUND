@@ -57,7 +57,7 @@ Use an HTTPS email API because Render Free blocks common outbound SMTP ports. **
 4. In Render environment settings, add `BREVO_API_KEY` and set `EMAIL_FROM` to that verified sender address. Never put the key in chat or GitHub.
 5. Save/redeploy, register each owner account, and request a verification email. Open the link while signed in to the same account that requested it. Check junk folders as needed.
 
-The account `somkene.ebukambonu@millburnacademy.org.ukn` receives admin access immediately, without email verification. This explicit exception does not mark its email verified. Anyone registering that exact address can acquire admin powers.
+The account `somkene.ebukambonu@millburn.org.uk` receives admin access immediately, without email verification. This explicit exception does not mark its email verified. Anyone registering that exact address can acquire admin powers.
 
 These other owner addresses still require verification:
 
