@@ -108,9 +108,10 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     },
   );
   await t.test("explicit corrected-email exception gains admin without marking its email verified", async () => {
-    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburn.org.uk',username:'ExceptionOwner',password:'exception owner test password'});
+    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburnacademy.org.uk',username:'ExceptionOwner',password:'exception owner test password'});
     assert.equal(registered.status,200);
     assert.equal(registered.data.user.admin,true);
+    owner=registered.cookie;
     assert.equal(registered.data.user.verified,false);
     assert.equal((await req('/admin','GET',undefined,registered.cookie)).status,200);
     assert.equal((await req('/admin/users','PATCH',{id:registered.data.user.id,banned:true},registered.cookie)).status,400);
@@ -130,24 +131,15 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     assert.equal((await req('/bootstrap','GET',undefined,registered.cookie)).data.user.admin,false);
     assert.equal((await req('/admin','GET',undefined,registered.cookie)).status,403);
   });
-  await t.test(
-    "unverified owner email cannot acquire admin powers",
-    async () => {
-      const res = await req("/register", "POST", {
-        email: "somkene.ebukambonu@millburnacademy.org.uk",
-        username: "Somkene",
-        password: "owner secure password",
-      });
-      owner = res.cookie;
-      assert.equal(res.data.user.admin, false);
-      assert.equal((await req("/admin", "GET", undefined, owner)).status, 403);
-      assert.equal(
-        (await req("/admin/settings", "PATCH", { maintenance: true }, regular))
-          .status,
-        403,
-      );
-    },
-  );
+  await t.test("former millburn.org.uk exception is now a regular account", async () => {
+    const res = await req('/register','POST',{email:'somkene.ebukambonu@millburn.org.uk',username:'WrongDomain',password:'wrong domain test password'});
+    assert.equal(res.data.user.admin,false);
+    const db=new DatabaseSync(database);
+    db.prepare('UPDATE users SET verified=1 WHERE id=?').run(res.data.user.id);
+    db.close();
+    assert.equal((await req('/admin','GET',undefined,res.cookie)).status,403);
+    assert.equal((await req('/admin/settings','PATCH',{maintenance:true},regular)).status,403);
+  });
   await t.test("old mistaken admin email stays a regular account", async () => {
     const res = await req("/register", "POST", {
       email: "kamneto.ebukambonu@gmail.com",
@@ -166,7 +158,7 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     );
   });
   await t.test(
-    "verification token enables owner access once and expires",
+    "email verification remains single-use for the exempt owner",
     async () => {
       const db = new DatabaseSync(database),
         token = randomBytes(32).toString("hex"),

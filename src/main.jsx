@@ -1966,7 +1966,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
         <div>
           <strong>Administrator access</strong>
           <p>
-            somkene.ebukambonu@millburn.org.uk (verification exception) · somkene.ebukambonu@millburnacademy.org.uk ·
+            somkene.ebukambonu@millburnacademy.org.uk (verification exception) ·
             kamneto.ebukambonu@millburnacademy.org.uk
           </p>
         </div>
@@ -2205,7 +2205,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
                     className={"btn " + (u.banned ? "secondary" : "danger")}
                     disabled={
                       busy ||
-                      u.email === "somkene.ebukambonu@millburn.org.uk" || u.email === "somkene.ebukambonu@millburnacademy.org.uk" ||
+                      u.email === "somkene.ebukambonu@millburnacademy.org.uk" ||
                       u.email === "kamneto.ebukambonu@millburnacademy.org.uk"
                     }
                     onClick={() => {

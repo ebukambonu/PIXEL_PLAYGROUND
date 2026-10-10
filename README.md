@@ -29,14 +29,13 @@ npm start
 
 These addresses are eligible for owner powers:
 
-- `somkene.ebukambonu@millburn.org.uk`: explicitly exempt from email verification. Registration or login immediately enables admin permissions; its email remains unverified. Anyone able to register this address can become an admin. Existing accounts with this exact address also receive the exception.
+- `somkene.ebukambonu@millburnacademy.org.uk`: explicitly exempt from email verification. Registration or login immediately enables admin permissions; its email remains unverified. Anyone able to register this address can become an admin. Existing accounts with this exact address also receive the exception.
 
 The following addresses continue to require email verification:
 
-- `somkene.ebukambonu@millburnacademy.org.uk`
 - `kamneto.ebukambonu@millburnacademy.org.uk`
 
-Each owner listed as requiring verification registers normally, then verifies the address through the email link while signed in to the same account. Merely entering one of these addresses **does not** grant admin powers. Privileged actions check the server-side allowlist and either verified email or the single explicit `millburn.org.uk` exception on every request. Owners receive a verification tick in profiles and chat. Changing an email address or promoting an arbitrary user is not exposed through the UI.
+Each owner listed as requiring verification registers normally, then verifies the address through the email link while signed in to the same account. Merely entering one of these addresses **does not** grant admin powers. Privileged actions check the server-side allowlist and either verified email or the single explicit `millburnacademy.org.uk` exception on every request. Owners receive a verification tick in profiles and chat. Changing an email address or promoting an arbitrary user is not exposed through the UI.
 
 For a free sender without a purchased domain, configure Brevo with `BREVO_API_KEY`, a verified `EMAIL_FROM`, and `APP_URL`. On Render, `APP_URL` can default to the supplied external service URL. Brevo takes priority when its key is configured.
 
@@ -44,7 +43,7 @@ Alternatively, configure HTTPS mail delivery through Resend using `RESEND_API_KE
 
 Alternatively, configure an SMTP provider using environment variables: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `APP_URL`. `.env.example` contains placeholders only. For a local `.env`, use `node --env-file=.env --watch server.js` for development or `NODE_ENV=production node --env-file=.env server.js` for production. Standard npm commands use already exported environment variables. SMTP uses TLS verification and requires STARTTLS on ports other than 465. Configure the mail provider to send from `SMTP_FROM`, and allow egress to that provider. Never put credentials into Git, chat, or saved scripts. No email service credentials or real passwords are bundled.
 
-Email delivery is **not configured in the initial cloud instance**. Regular accounts and gameplay work, but owner admin access remains locked until verification can be completed, apart from the explicit `millburn.org.uk` exception. Server-side authorization and admin behavior are tested using an isolated test database; those test accounts never enter the real site database.
+Email delivery is **not configured in the initial cloud instance**. Regular accounts and gameplay work, but owner admin access remains locked until verification can be completed, apart from the explicit `millburnacademy.org.uk` exception. Server-side authorization and admin behavior are tested using an isolated test database; those test accounts never enter the real site database.
 
 ## Features
 
