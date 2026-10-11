@@ -11,18 +11,22 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import nodemailer from "nodemailer";
 // Use the cloud proxy for HTTPS email delivery, including injected authentication.
-http.setGlobalProxyFromEnv();
+http.setGlobalProxyFromEnv?.();
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
 const dbPath = process.env.DATABASE_PATH || path.join(root, "data/pixel.db");
 if (
-  process.env.REQUIRE_REMOTE_DATABASE === "true" &&
+  (process.env.VERCEL || process.env.REQUIRE_REMOTE_DATABASE === "true") &&
   !process.env.TURSO_DATABASE_URL
 )
   throw new Error(
     "This deployment requires TURSO_DATABASE_URL and TURSO_AUTH_TOKEN; local storage is temporary.",
   );
-process.env.APP_URL ||= process.env.RENDER_EXTERNAL_URL;
+process.env.APP_URL ||=
+  process.env.RENDER_EXTERNAL_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : undefined);
 const db = openDatabase({
   file: dbPath,
   url: process.env.TURSO_DATABASE_URL,
@@ -41,6 +45,8 @@ CREATE TABLE IF NOT EXISTS inventory(user_id INTEGER REFERENCES users(id), item_
 CREATE TABLE IF NOT EXISTS purchases(id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), item_id TEXT, cost INTEGER, created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS rewards(user_id INTEGER REFERENCES users(id), day TEXT, PRIMARY KEY(user_id,day));
 CREATE TABLE IF NOT EXISTS scores(id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), game TEXT, score INTEGER, created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS rate_limits(key TEXT NOT NULL, expires INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS rate_limits_key_expires ON rate_limits(key, expires);
 CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, actor INTEGER REFERENCES users(id), action TEXT, details TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);`);
 for (const [name, description] of [
   ["general", "The place to hang out."],
@@ -68,12 +74,62 @@ for (const [key, value] of Object.entries({
   await db
     .prepare("INSERT OR IGNORE INTO settings VALUES (?,?)")
     .run(key, JSON.stringify(value));
-export const UNVERIFIED_ADMIN_EMAIL = "somkene.ebukambonu@millburnacademy.org.uk";
+export const UNVERIFIED_ADMIN_EMAIL =
+  "somkene.ebukambonu@millburnacademy.org.uk";
 export const ADMINS = new Set([
   UNVERIFIED_ADMIN_EMAIL,
   "kamneto.ebukambonu@millburnacademy.org.uk",
 ]);
 export const ITEMS = [
+  ...[
+    ["forest", "Forest arcade", 450, "#91d8a1", "A quiet woodland escape."],
+    [
+      "neon",
+      "Neon nights",
+      600,
+      "#73f7d0",
+      "Bright lights for late-night play.",
+    ],
+    ["ice", "Arctic blue", 500, "#a4dbff", "Cool colours. Clear focus."],
+    [
+      "gold",
+      "Golden player",
+      750,
+      "#f4d477",
+      "A little shine for your next win.",
+    ],
+  ].map(([value, name, price, color, description]) => ({
+    id: `theme-${value}`,
+    type: "theme",
+    name,
+    value,
+    price,
+    color,
+    description,
+  })),
+  ...[
+    ["owl", "Midnight owl", "🦉", 180, "Always one move ahead."],
+    ["penguin", "Chill penguin", "🐧", 220, "Stay cool under pressure."],
+    ["frog", "Lucky frog", "🐸", 180, "Leap into the next round."],
+    ["alien", "Arcade alien", "👽", 300, "A visitor from another leaderboard."],
+    ["wizard", "Puzzle wizard", "🧙", 400, "A little magic for every puzzle."],
+    [
+      "octopus",
+      "Eight-bit octopus",
+      "🐙",
+      280,
+      "Eight arms. Endless possibilities.",
+    ],
+    ["tiger", "Pixel tiger", "🐯", 350, "Bring your game face."],
+    ["phoenix", "Firebird", "🔥", 500, "Every new round is a comeback."],
+  ].map(([id, name, value, price, description]) => ({
+    id: `avatar-${id}`,
+    type: "avatar",
+    name,
+    value,
+    price,
+    description,
+  })),
   {
     id: "theme-lavender",
     type: "theme",
@@ -160,7 +216,12 @@ export const ITEMS = [
   },
 ];
 const sha = (value) => createHash("sha256").update(value).digest("hex");
-const isAdmin = (user) => Boolean(user && ADMINS.has(user.email) && (user.verified || user.email === UNVERIFIED_ADMIN_EMAIL));
+const isAdmin = (user) =>
+  Boolean(
+    user &&
+    ADMINS.has(user.email) &&
+    (user.verified || user.email === UNVERIFIED_ADMIN_EMAIL),
+  );
 const safeUser = async (user) =>
   user
     ? {
@@ -198,32 +259,45 @@ function passwordMatches(password, hash) {
     scryptSync(password, salt, 64),
   );
 }
-const limits = new Map();
-function rate(key, max, windowMs) {
+async function rate(key, max, windowMs) {
+  // Database transactions enforce the limit across separate Vercel instances.
   const now = Date.now();
-  const values = (limits.get(key) || []).filter((t) => now - t < windowMs);
-  if (values.length >= max)
-    throw Object.assign(new Error("Please slow down and try again shortly."), {
-      status: 429,
-    });
-  values.push(now);
-  limits.set(key, values);
+  await db.transaction(async () => {
+    await db.prepare("DELETE FROM rate_limits WHERE expires<=?").run(now);
+    const row = await db
+      .prepare("SELECT COUNT(*) AS count FROM rate_limits WHERE key=?")
+      .get(key);
+    if (row.count >= max) fail("Please slow down and try again shortly.", 429);
+    await db
+      .prepare("INSERT INTO rate_limits(key,expires) VALUES (?,?)")
+      .run(key, now + windowMs);
+  });
 }
 async function cleanupExpired() {
   const now = Date.now();
-  for (const [key, values] of limits) {
-    const recent = values.filter((t) => now - t < 3600000);
-    if (recent.length) limits.set(key, recent);
-    else limits.delete(key);
-  }
   await db.prepare("DELETE FROM sessions WHERE expires<?").run(now);
   await db.prepare("DELETE FROM verifications WHERE expires<?").run(now);
 }
-setInterval(() => {
-  cleanupExpired().catch(() =>
-    console.error("Database cleanup failed; will retry later."),
-  );
-}, 300000).unref();
+let nextCleanup = 0;
+async function maintainDatabase() {
+  // Request-driven cleanup also works when a serverless process is suspended.
+  if (Date.now() < nextCleanup) return;
+  nextCleanup = Date.now() + 300000;
+  try {
+    await cleanupExpired();
+  } catch (error) {
+    nextCleanup = 0;
+    throw error;
+  }
+}
+function clientAddress(req) {
+  // Trust the platform-provided client address only on Vercel.
+  if (process.env.VERCEL) {
+    const forwarded = req.headers["x-forwarded-for"];
+    if (typeof forwarded === "string") return forwarded.split(",")[0].trim();
+  }
+  return req.socket?.remoteAddress || "unknown";
+}
 function fail(message, status = 400) {
   throw Object.assign(new Error(message), {
     status,
@@ -351,6 +425,17 @@ async function audit(actor, action, details) {
     .run(actor, action, JSON.stringify(details));
 }
 async function body(req) {
+  // Vercel can parse JSON before invoking the function.
+  if (req.body !== undefined) {
+    const raw =
+      typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    if (Buffer.byteLength(raw) > 20000) fail("Request too large.", 413);
+    try {
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      fail("Invalid JSON.");
+    }
+  }
   let raw = "";
   for await (const chunk of req) {
     raw += chunk;
@@ -396,7 +481,7 @@ async function api(req, res, url) {
       emailAvailable: mailConfigured(),
     };
   if (p === "/api/register" && method === "POST") {
-    rate("auth:" + req.socket.remoteAddress, 20, 3600000);
+    await rate("auth:" + clientAddress(req), 20, 3600000);
     const b = await body(req);
     const email = cleanText(b.email, 5, 254, "Email").toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
@@ -430,13 +515,15 @@ async function api(req, res, url) {
     const sent = exempt ? false : await sendVerification(created);
     return {
       user: await safeUser(created),
-      message: exempt ? "Account created! Admin access is enabled. Email remains unverified." : sent
-        ? "Account created! Check your email to verify."
-        : "Account created! Email verification is awaiting server mail setup. Admin access stays locked until verification.",
+      message: exempt
+        ? "Account created! Admin access is enabled. Email remains unverified."
+        : sent
+          ? "Account created! Check your email to verify."
+          : "Account created! Email verification is awaiting server mail setup. Admin access stays locked until verification.",
     };
   }
   if (p === "/api/login" && method === "POST") {
-    rate("auth:" + req.socket.remoteAddress, 20, 3600000);
+    await rate("auth:" + clientAddress(req), 20, 3600000);
     const b = await body(req);
     if (
       typeof b.email !== "string" ||
@@ -490,7 +577,7 @@ async function api(req, res, url) {
   }
   if (p === "/api/resend-verification" && method === "POST") {
     requireUser(user);
-    rate("mail:" + user.id, 3, 3600000);
+    await rate("mail:" + user.id, 3, 3600000);
     if (user.verified)
       return {
         message: "Your email is already verified.",
@@ -527,7 +614,7 @@ async function api(req, res, url) {
         .reverse()
         .map(({ email, ...m }) => ({
           ...m,
-          admin: isAdmin({email, verified: m.verified}),
+          admin: isAdmin({ email, verified: m.verified }),
         })),
     };
   }
@@ -535,7 +622,7 @@ async function api(req, res, url) {
     requireUser(user);
     if (!settings.chatEnabled && !isAdmin(user))
       fail("Chat is currently paused.", 403);
-    rate("chat:" + user.id, 12, 60000);
+    await rate("chat:" + user.id, 12, 60000);
     const b = await body(req);
     const content = cleanText(b.content, 1, 500, "Message");
     const room = Number(b.room);
@@ -667,7 +754,7 @@ async function api(req, res, url) {
     };
   if (p === "/api/scores" && method === "POST") {
     requireUser(user);
-    rate("score:" + user.id, 10, 60000);
+    await rate("score:" + user.id, 10, 60000);
     const b = await body(req);
     if (
       ![
@@ -684,6 +771,8 @@ async function api(req, res, url) {
         "reaction",
         "quiz",
         "sudoku",
+        "hangman",
+        "fifteen-puzzle",
       ].includes(b.game) ||
       !Number.isInteger(b.score) ||
       b.score < 0 ||
@@ -917,7 +1006,7 @@ async function api(req, res, url) {
   fail("Not found.", 404);
 }
 let vite;
-if (process.env.NODE_ENV !== "production") {
+if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
   const { createServer } = await import("vite");
   vite = await createServer({
     root,
@@ -928,7 +1017,7 @@ if (process.env.NODE_ENV !== "production") {
     appType: "spa",
   });
 }
-const server = http.createServer(async (req, res) => {
+export async function requestHandler(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   // Google Sites checks embed headers; leave framing unrestricted.
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -936,6 +1025,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
     if (url.pathname.startsWith("/api/")) {
       res.setHeader("Cache-Control", "no-store");
+      await maintainDatabase();
       const result = await api(req, res, url);
       if (!res.writableEnded) {
         res.writeHead(200, {
@@ -988,16 +1078,23 @@ const server = http.createServer(async (req, res) => {
     );
     if (!error.status) console.error("Request failed:", error.name);
   }
-});
-server.listen(port, "0.0.0.0", () =>
-  console.log(`Pixel Playground running on port ${port}`),
-);
-function shutdown() {
-  server.close(() => {
-    db.close();
-    process.exit(0);
-  });
-  setTimeout(() => process.exit(0), 3000).unref();
 }
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+if (
+  !process.env.VERCEL &&
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  const server = http.createServer(requestHandler);
+  server.listen(port, "0.0.0.0", () =>
+    console.log(`Pixel Playground running on port ${port}`),
+  );
+  function shutdown() {
+    server.close(() => {
+      db.close();
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 3000).unref();
+  }
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+}

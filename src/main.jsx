@@ -192,6 +192,14 @@ function GameArt({ game, mini = false }) {
           ))}
           <span />
         </div>
+      ) : game.icon === "hangman" ? (
+        <span className="art-large art-hangman">A _ C _ D E</span>
+      ) : game.icon === "fifteen" ? (
+        <div className="art-sudoku">
+          {["1", "2", "3", "4", "5", "6", "7", "8", ""].map((v, i) => (
+            <span key={i}>{v}</span>
+          ))}
+        </div>
       ) : game.icon === "sudoku" ? (
         <div className="art-sudoku">
           {["1", "", "6", "", "9", "", "3", "", "7"].map((v, i) => (

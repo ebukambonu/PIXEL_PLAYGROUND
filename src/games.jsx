@@ -12,7 +12,7 @@ import {
   Delete,
 } from "lucide-react";
 import {
-  WORDS,
+  VALID_GUESSES,
   dailyWord,
   wordColors,
   slide2048,
@@ -20,7 +20,26 @@ import {
   winner,
   connectWinner,
 } from "./gameLogic";
+import { Hangman, FifteenPuzzle } from "./classics";
 export const GAME_CATALOG = [
+  {
+    id: "hangman",
+    name: "Hangman",
+    category: "Word",
+    description: "Find the hidden word before six wrong guesses.",
+    color: "green",
+    icon: "hangman",
+    tag: "CLASSIC",
+  },
+  {
+    id: "fifteen-puzzle",
+    name: "15 Puzzle",
+    category: "Puzzle",
+    description: "Slide the tiles. Put every number in its place.",
+    color: "orange",
+    icon: "fifteen",
+    tag: "CLASSIC",
+  },
   {
     id: "wordle",
     name: "Daily Wordle",
@@ -221,7 +240,7 @@ function Wordle({ onScore }) {
         setMessage("Fill all five letters first.");
         return;
       }
-      if (!WORDS.includes(input)) {
+      if (!VALID_GUESSES.has(input)) {
         setMessage("Try a word in the dictionary.");
         return;
       }
@@ -1587,6 +1606,10 @@ function Sudoku({ onScore }) {
 }
 export function GamePlayer({ game, onScore }) {
   switch (game.id) {
+    case "hangman":
+      return <Hangman onScore={onScore} />;
+    case "fifteen-puzzle":
+      return <FifteenPuzzle onScore={onScore} />;
     case "wordle":
       return <Wordle onScore={onScore} />;
     case "tetris":

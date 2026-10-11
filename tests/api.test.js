@@ -28,7 +28,32 @@ async function req(endpoint, method = "GET", body, cookie) {
   };
 }
 before(async () => {
-  processHandle = spawn(process.execPath, ["server.js"], {
+  const args =
+    process.env.PIXEL_TEST_ADAPTER === "vercel"
+      ? [
+          "--input-type=module",
+          "-e",
+          `
+      import http from 'node:http';
+      import handler from './api/index.js';
+      import { requestHandler } from './server.js';
+      http.createServer(async (req,res) => {
+        if (!req.url.startsWith('/api/')) return requestHandler(req,res);
+        const url = new URL(req.url, 'http://localhost');
+        const route = url.pathname.slice(5);
+        url.pathname = '/api/index';
+        url.searchParams.set('__route', route);
+        req.url = url.pathname + url.search;
+        if (req.headers['content-type']?.startsWith('application/json')) {
+          let raw = ''; for await (const chunk of req) raw += chunk;
+          try { req.body = raw ? JSON.parse(raw) : {}; } catch { req.body = raw; }
+        }
+        await handler(req,res);
+      }).listen(process.env.PORT, '127.0.0.1', () => console.log('running on port'));
+    `,
+        ]
+      : ["server.js"];
+  processHandle = spawn(process.execPath, args, {
     cwd: path.resolve(import.meta.dirname, ".."),
     env: {
       ...process.env,
@@ -68,17 +93,20 @@ after(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 test("account, economy, moderation and ownership boundaries", async (t) => {
-  await t.test("sends no framing restrictions for Google Sites embedding", async () => {
-    const res = await fetch(base + "/");
-    assert.equal(res.status, 200);
-    assert.equal(res.headers.get("x-frame-options"), null);
-    assert.equal(res.headers.get("content-security-policy"), null);
-  });
+  await t.test(
+    "sends no framing restrictions for Google Sites embedding",
+    async () => {
+      const res = await fetch(base + "/");
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get("x-frame-options"), null);
+      assert.equal(res.headers.get("content-security-policy"), null);
+    },
+  );
   await t.test("public bootstrap includes shared rooms and shop", async () => {
     const res = await req("/bootstrap");
     assert.equal(res.status, 200);
     assert.equal(res.data.rooms.length, 3);
-    assert.equal(res.data.items.length, 10);
+    assert.equal(res.data.items.length, 22);
     assert.equal(res.data.user, null);
   });
   await t.test(
@@ -113,39 +141,103 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       assert.equal(res.status, 409);
     },
   );
-  await t.test("explicit corrected-email exception gains admin without marking its email verified", async () => {
-    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburnacademy.org.uk',username:'ExceptionOwner',password:'exception owner test password'});
-    assert.equal(registered.status,200);
-    assert.equal(registered.data.user.admin,true);
-    owner=registered.cookie;
-    assert.equal(registered.data.user.verified,false);
-    assert.equal((await req('/admin','GET',undefined,registered.cookie)).status,200);
-    assert.equal((await req('/admin/users','PATCH',{id:registered.data.user.id,banned:true},registered.cookie)).status,400);
-    const sent=await req('/messages','POST',{room:1,content:'Exception admin badge'},registered.cookie);
-    assert.equal(sent.status,200);
-    const message=(await req('/messages?room=1')).data.messages.find(m=>m.id===sent.data.id);
-    assert.equal(message.admin,true);
-    assert.equal(message.verified,0);
-    await req('/admin/messages','DELETE',{id:sent.data.id},registered.cookie);
-  });
-  await t.test("mistaken ukn address no longer gets admin even after verification", async () => {
-    const registered = await req('/register','POST',{email:'somkene.ebukambonu@millburnacademy.org.ukn',username:'MistakenOwner',password:'mistaken address test password'});
-    assert.equal(registered.data.user.admin,false);
-    const db=new DatabaseSync(database);
-    db.prepare('UPDATE users SET verified=1 WHERE id=?').run(registered.data.user.id);
-    db.close();
-    assert.equal((await req('/bootstrap','GET',undefined,registered.cookie)).data.user.admin,false);
-    assert.equal((await req('/admin','GET',undefined,registered.cookie)).status,403);
-  });
-  await t.test("former millburn.org.uk exception is now a regular account", async () => {
-    const res = await req('/register','POST',{email:'somkene.ebukambonu@millburn.org.uk',username:'WrongDomain',password:'wrong domain test password'});
-    assert.equal(res.data.user.admin,false);
-    const db=new DatabaseSync(database);
-    db.prepare('UPDATE users SET verified=1 WHERE id=?').run(res.data.user.id);
-    db.close();
-    assert.equal((await req('/admin','GET',undefined,res.cookie)).status,403);
-    assert.equal((await req('/admin/settings','PATCH',{maintenance:true},regular)).status,403);
-  });
+  await t.test(
+    "explicit corrected-email exception gains admin without marking its email verified",
+    async () => {
+      const registered = await req("/register", "POST", {
+        email: "somkene.ebukambonu@millburnacademy.org.uk",
+        username: "ExceptionOwner",
+        password: "exception owner test password",
+      });
+      assert.equal(registered.status, 200);
+      assert.equal(registered.data.user.admin, true);
+      owner = registered.cookie;
+      assert.equal(registered.data.user.verified, false);
+      assert.equal(
+        (await req("/admin", "GET", undefined, registered.cookie)).status,
+        200,
+      );
+      assert.equal(
+        (
+          await req(
+            "/admin/users",
+            "PATCH",
+            { id: registered.data.user.id, banned: true },
+            registered.cookie,
+          )
+        ).status,
+        400,
+      );
+      const sent = await req(
+        "/messages",
+        "POST",
+        { room: 1, content: "Exception admin badge" },
+        registered.cookie,
+      );
+      assert.equal(sent.status, 200);
+      const message = (await req("/messages?room=1")).data.messages.find(
+        (m) => m.id === sent.data.id,
+      );
+      assert.equal(message.admin, true);
+      assert.equal(message.verified, 0);
+      await req(
+        "/admin/messages",
+        "DELETE",
+        { id: sent.data.id },
+        registered.cookie,
+      );
+    },
+  );
+  await t.test(
+    "mistaken ukn address no longer gets admin even after verification",
+    async () => {
+      const registered = await req("/register", "POST", {
+        email: "somkene.ebukambonu@millburnacademy.org.ukn",
+        username: "MistakenOwner",
+        password: "mistaken address test password",
+      });
+      assert.equal(registered.data.user.admin, false);
+      const db = new DatabaseSync(database);
+      db.prepare("UPDATE users SET verified=1 WHERE id=?").run(
+        registered.data.user.id,
+      );
+      db.close();
+      assert.equal(
+        (await req("/bootstrap", "GET", undefined, registered.cookie)).data.user
+          .admin,
+        false,
+      );
+      assert.equal(
+        (await req("/admin", "GET", undefined, registered.cookie)).status,
+        403,
+      );
+    },
+  );
+  await t.test(
+    "former millburn.org.uk exception is now a regular account",
+    async () => {
+      const res = await req("/register", "POST", {
+        email: "somkene.ebukambonu@millburn.org.uk",
+        username: "WrongDomain",
+        password: "wrong domain test password",
+      });
+      assert.equal(res.data.user.admin, false);
+      const db = new DatabaseSync(database);
+      db.prepare("UPDATE users SET verified=1 WHERE id=?").run(
+        res.data.user.id,
+      );
+      db.close();
+      assert.equal(
+        (await req("/admin", "GET", undefined, res.cookie)).status,
+        403,
+      );
+      assert.equal(
+        (await req("/admin/settings", "PATCH", { maintenance: true }, regular))
+          .status,
+        403,
+      );
+    },
+  );
   await t.test("old mistaken admin email stays a regular account", async () => {
     const res = await req("/register", "POST", {
       email: "kamneto.ebukambonu@gmail.com",
@@ -422,6 +514,97 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       const res = await req("/admin", "GET", undefined, owner);
       assert.ok(res.data.audit.some((x) => x.action === "settings"));
       assert.ok(res.data.audit.some((x) => x.action === "user update"));
+    },
+  );
+  await t.test(
+    "new games save scores and new shop items can be bought and equipped",
+    async () => {
+      for (const game of ["hangman", "fifteen-puzzle"]) {
+        assert.equal(
+          (await req("/scores", "POST", { game, score: 700 }, owner)).status,
+          200,
+        );
+      }
+      const account = await req("/register", "POST", {
+        email: "newshop@example.com",
+        username: "NewShopPlayer",
+        password: "a secure shop password",
+      });
+      assert.equal(account.status, 200);
+      assert.equal(
+        (
+          await req(
+            "/admin/users",
+            "PATCH",
+            { id: account.data.user.id, coins: 1000 },
+            owner,
+          )
+        ).status,
+        200,
+      );
+      const theme = await req(
+        "/purchase",
+        "POST",
+        { item: "theme-forest", price: 0 },
+        account.cookie,
+      );
+      assert.equal(theme.status, 200);
+      assert.equal(theme.data.user.coins, 550);
+      assert.equal(
+        (
+          await req(
+            "/profile",
+            "PATCH",
+            { item: "theme-forest" },
+            account.cookie,
+          )
+        ).data.user.theme,
+        "forest",
+      );
+      const avatar = await req(
+        "/purchase",
+        "POST",
+        { item: "avatar-owl" },
+        account.cookie,
+      );
+      assert.equal(avatar.data.user.coins, 370);
+      assert.equal(
+        (await req("/profile", "PATCH", { item: "avatar-owl" }, account.cookie))
+          .data.user.avatar,
+        "🦉",
+      );
+      assert.equal(
+        (await req("/profile", "PATCH", { item: "theme-gold" }, account.cookie))
+          .status,
+        400,
+      );
+    },
+  );
+  await t.test(
+    "rate limits use shared database records rather than instance memory",
+    async () => {
+      const db = new DatabaseSync(database);
+      const key = db
+        .prepare("SELECT key FROM rate_limits WHERE key LIKE 'auth:%' LIMIT 1")
+        .get().key;
+      const count = db
+        .prepare("SELECT COUNT(*) AS count FROM rate_limits WHERE key=?")
+        .get(key).count;
+      for (let index = count; index < 20; index++)
+        db.prepare("INSERT INTO rate_limits VALUES (?,?)").run(
+          key,
+          Date.now() + 3600000,
+        );
+      db.close();
+      assert.equal(
+        (
+          await req("/login", "POST", {
+            email: "newshop@example.com",
+            password: "a secure shop password",
+          })
+        ).status,
+        429,
+      );
     },
   );
 });

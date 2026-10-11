@@ -69,6 +69,50 @@
   --panel2: #372432;
   --ring: #ffa2c7;
 }
+:root[data-theme="forest"] {
+  --accent: #91d8a1;
+  --accent-dark: #193526;
+  --accent-text: #12291a;
+  --hero: #9fceaf;
+  --bg: #111a15;
+  --sidebar: #15221b;
+  --panel: #1c2b22;
+  --panel2: #26392d;
+  --ring: #91d8a1;
+}
+:root[data-theme="neon"] {
+  --accent: #73f7d0;
+  --accent-dark: #173d34;
+  --accent-text: #10352b;
+  --hero: #b7a4e7;
+  --bg: #110f1b;
+  --sidebar: #191526;
+  --panel: #221c35;
+  --panel2: #2f2845;
+  --ring: #73f7d0;
+}
+:root[data-theme="ice"] {
+  --accent: #a4dbff;
+  --accent-dark: #20394e;
+  --accent-text: #142c41;
+  --hero: #a4cde0;
+  --bg: #111a24;
+  --sidebar: #172330;
+  --panel: #203142;
+  --panel2: #2b4054;
+  --ring: #a4dbff;
+}
+:root[data-theme="gold"] {
+  --accent: #f4d477;
+  --accent-dark: #3e3319;
+  --accent-text: #30260e;
+  --hero: #e2cd92;
+  --bg: #1a1810;
+  --sidebar: #232016;
+  --panel: #2e291d;
+  --panel2: #3c3524;
+  --ring: #f4d477;
+}
 * {
   box-sizing: border-box;
 }
@@ -1579,6 +1623,10 @@ button:active:not(:disabled) {
 .illustration-quiz .art-large {
   color: #a5c7e4;
   font-size: 80px;
+}
+.art-large.art-hangman {
+  font-size: 30px;
+  letter-spacing: 2px;
 }
 .dashboard-lower {
   display: grid;
@@ -5065,4 +5113,80 @@ button:active:not(:disabled) {
 .global-announcement {
   margin-top: 0;
   margin-bottom: 26px;
+}
+
+.hangman-drawing {
+  display: block;
+  width: 200px;
+  max-width: 100%;
+  margin: 0 auto 12px;
+  color: var(--accent);
+}
+.hangman-word {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 20px 0;
+}
+.hangman-word span {
+  width: 28px;
+  text-align: center;
+  border-bottom: 2px solid var(--accent);
+  font-size: 24px;
+  font-weight: 700;
+}
+.hangman-word .missed {
+  color: #ff9d9d;
+}
+.hangman-keyboard {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 440px;
+  margin: 20px auto;
+}
+.hangman-keyboard button {
+  width: 38px;
+  height: 42px;
+  border: 1px solid #ffffff20;
+  border-radius: 6px;
+  background: var(--panel2);
+  color: var(--text);
+  font-weight: 700;
+}
+.hangman-keyboard button.correct {
+  background: #265b3a;
+}
+.hangman-keyboard button.absent {
+  opacity: 0.35;
+}
+.fifteen-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  max-width: 360px;
+  margin: 24px auto;
+}
+.fifteen-board button {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid #ffffff20;
+  background: var(--panel2);
+  color: var(--text);
+  font-size: clamp(20px, 5vw, 32px);
+  font-weight: 700;
+  opacity: 1;
+}
+.fifteen-board button.placed {
+  background: var(--accent-dark);
+  color: var(--accent);
+}
+.fifteen-board button.blank {
+  background: transparent;
+  border: 1px dashed #ffffff20;
+}
+.fifteen-board button:not(:disabled):hover {
+  border-color: var(--accent);
 }

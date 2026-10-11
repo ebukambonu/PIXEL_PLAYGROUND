@@ -1,8 +1,10 @@
 # Pixel Playground
 
-An arcade and community website with 13 playable games, 8 utility apps, persistent accounts, shared chat, a play-coin shop, and owner administration. The design includes a responsive dark dashboard and unlockable themes.
+An arcade and community website with 15 playable games, 8 utility apps, persistent accounts, shared chat, a 22-item play-coin shop, and owner administration. The design includes a responsive dark dashboard and unlockable themes.
 
 ## Free public hosting
+
+For Vercel, [follow the full-site deployment guide](deployment/VERCEL.md). The frontend is static and the backend runs as a Node.js function with durable Turso storage. `vercel.json` configures the build and API routing. Run `npm run test:vercel` to exercise the API through the function adapter locally. Actual Vercel deployment requires connecting your account and adding database/email credentials.
 
 For a free public site with durable accounts and chat, use Render Free with Turso Free. [Follow the deployment guide](deployment/FREE_HOSTING.md); `render.yaml` declares a free web service and requires the hosted database. A supplied `.onrender.com` address avoids purchasing a custom domain. Free-tier usage limits and cold starts still apply. Brevo is supported for verification email using a sender you can verify without purchasing a domain. External database and email service credentials must be added securely in the hosting dashboard.
 
@@ -23,7 +25,7 @@ npm test
 npm start
 ```
 
-`npm start` serves the production build. Use a production HTTPS reverse proxy, configure `APP_URL`, and put `DATABASE_PATH` on a persistent volume before public deployment. Back up the database with SQLite's backup facilities (include WAL state when copying a live database). Keep one application instance per database; this implementation uses SQLite/libSQL and polling rather than distributed messaging. The database adapter serializes local transactions and supports hosted libSQL over TLS; existing local SQLite data is preserved.
+`npm start` serves the production build on traditional Node hosts. Configure `APP_URL` and use either a persistent volume for `DATABASE_PATH` or Turso. Back up the database with SQLite's backup facilities (include WAL state when copying a live database). Use one application instance for local SQLite files. Vercel uses remote Turso storage, with transactions and database rate limits shared across function instances. Chat uses polling. Existing local SQLite data is preserved.
 
 ## Owner accounts and verification
 
@@ -47,12 +49,12 @@ Email delivery is **not configured in the initial cloud instance**. Regular acco
 
 ## Features
 
-- Games: daily Wordle, Tetris, Snake, 2048, Minesweeper, Memory Match, Tic Tac Toe (computer or local two-player), Connect Four (local two-player), Pong (computer), Breakout, Reaction Time, Trivia Quest, Sudoku.
-- Wordle: one deterministic UTC daily puzzle, six guesses, duplicate-letter clues, browser progress persistence, and a curated guess dictionary. It is a custom Wordle-style game. Refresh or reopen the game after midnight for the next puzzle.
+- Games: daily Wordle, Tetris, Snake, 2048, Minesweeper, Memory Match, Tic Tac Toe (computer or local two-player), Connect Four (local two-player), Pong (computer), Breakout, Reaction Time, Trivia Quest, Sudoku, Hangman, and 15 Puzzle (always shuffled through legal moves so it is solvable).
+- Wordle: one deterministic UTC daily puzzle, six guesses, duplicate-letter clues, browser progress persistence, 14,826 accepted dictionary guesses, and 1,737 curated daily answers. It is a custom Wordle-style game. The expanded answer pool starts on 2026-10-12 UTC, preserving the previous schedule before that date. Refresh or reopen the game after midnight for the next puzzle. [Dictionary attribution](licenses/README.md).
 - Apps: calculator with parentheses and percentages, world clock, stopwatch with laps, countdown timer, browser notes, unit converter, dice roller, and Pomodoro focus timer.
 - Accounts: scrypt password hashes, HttpOnly sessions, email verification, welcome coins, and once-per-day coin claims.
 - Chat: shared global room, owner-managed chat rooms, message deletion, room clearing, and server-enforced bans. Messages refresh every 2.5 seconds; settings and room changes refresh every 15 seconds.
-- Shop: 4 themes and 6 avatars, server-authoritative pricing, inventory, and equip controls. Coins have no cash value; no real-money payment gateway is included.
+- Shop: 8 themes and 14 avatars, server-authoritative pricing, inventory, and equip controls. New themes include Forest, Neon, Arctic and Gold; new avatars include an owl, penguin, frog, alien, wizard, octopus, tiger and firebird. Owners can edit every item's name, description, price and availability. Coins have no cash value; no real-money payment gateway is included.
 - Admin: player bans/unbans, balances and usernames, global announcements, site text, game visibility and copy, shop availability and prices, room create/edit/delete, maintenance mode, chat pause, shop pause, and an action log.
 
 ### Owner commands
