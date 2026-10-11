@@ -4,3 +4,6 @@ data/
 .env
 *.log
 .vercel/
+dist-google-sites/
+supabase/.temp/
+supabase/.branches/

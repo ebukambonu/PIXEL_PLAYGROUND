@@ -3,8 +3,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { openPostgres } from "./postgres.js";
 
-export function openDatabase({ file, url, authToken } = {}) {
+export function openDatabase({ file, url, authToken, postgresUrl } = {}) {
+  if (postgresUrl) return openPostgres(postgresUrl);
   if (url) {
     const parsed = new URL(url);
     if (

@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "pg": "npm:pg@8.23.1",
+    "nodemailer": "npm:nodemailer@7.0.13"
+  }
+}

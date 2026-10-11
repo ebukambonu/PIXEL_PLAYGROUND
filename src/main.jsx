@@ -48,14 +48,33 @@ import {
 import { GAME_CATALOG, GamePlayer } from "./games";
 import { APP_CATALOG, AppPlayer } from "./apps";
 import "./styles.css";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const SESSION_STORAGE_KEY = "pixel-edge-session:" + API_BASE;
+let edgeSession = null;
+try {
+  edgeSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+} catch {}
 async function api(path, method = "GET", body) {
-  const res = await fetch("/api" + path, {
+  const res = await fetch(API_BASE + "/api" + path, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(API_BASE && edgeSession
+        ? { Authorization: "Bearer " + edgeSession }
+        : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Please try again.");
+  if (API_BASE && Object.hasOwn(data, "sessionToken")) {
+    edgeSession = data.sessionToken;
+    try {
+      if (edgeSession)
+        sessionStorage.setItem(SESSION_STORAGE_KEY, edgeSession);
+      else sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {}
+  }
   return data;
 }
 function PixelLogo() {
@@ -533,7 +552,7 @@ function App() {
                     <strong>
                       {user.username} {user.admin && <Verified />}
                     </strong>
-                    <small>{user.email}</small>
+                    <small>Player account</small>
                     <button
                       onClick={() => {
                         setModal({ type: "profile" });
@@ -1333,7 +1352,7 @@ function Modal({ children, onClose, title, subtitle, narrow = false }) {
   );
 }
 function Auth({ mode, setMode, onSuccess }) {
-  const [email, setEmail] = useState(""),
+  const [adminSetupKey, setAdminSetupKey] = useState(""),
     [password, setPassword] = useState(""),
     [username, setUsername] = useState(""),
     [error, setError] = useState(""),
@@ -1346,7 +1365,7 @@ function Auth({ mode, setMode, onSuccess }) {
       const data = await api(
         mode === "login" ? "/login" : "/register",
         "POST",
-        { email, password, username },
+        { password, username, adminSetupKey },
       );
       onSuccess(data);
     } catch (e) {
@@ -1361,7 +1380,7 @@ function Auth({ mode, setMode, onSuccess }) {
         <PixelLogo />
         <span>Find your people. Find your play.</span>
       </div>
-      {mode === "register" && (
+      {
         <label>
           Username
           <div className="form-input">
@@ -1378,21 +1397,20 @@ function Auth({ mode, setMode, onSuccess }) {
             />
           </div>
         </label>
-      )}
-      <label>
-        Email address
-        <div className="form-input">
-          <Mail size={17} />
-          <input
-            required
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-      </label>
+      }
+      {mode === "register" &&
+        ["somkene", "kamneto"].includes(username.toLowerCase()) && (
+          <label>
+            Admin setup code
+            <input
+              type="password"
+              required
+              value={adminSetupKey}
+              autoComplete="off"
+              onChange={(event) => setAdminSetupKey(event.target.value)}
+            />
+          </label>
+        )}
       <label>
         Password
         <div className="form-input">
@@ -1468,14 +1486,8 @@ function Profile({ user, emailAvailable, act, items, onLogin }) {
         <h2>
           {user.username} {user.admin && <Verified />}
         </h2>
-        <p>{user.email}</p>
-        <small>
-          {user.admin
-            ? "Verified administrator"
-            : user.verified
-              ? "Email verified"
-              : "Email awaiting verification"}
-        </small>
+        <p>Player account</p>
+        <small>{user.admin ? "Verified administrator" : "Player"}</small>
       </div>
       <div className="profile-coins">
         <Coins size={22} />
@@ -1502,26 +1514,6 @@ function Profile({ user, emailAvailable, act, items, onLogin }) {
           <Check size={14} />
         </button>
       </form>
-      {!user.verified && (
-        <div className="verification-notice">
-          <Mail size={20} />
-          <div>
-            <strong>Verify your email</strong>
-            <p>
-              {emailAvailable
-                ? "Check your inbox, or send another verification link."
-                : "Email delivery needs to be configured by the site owner. Email verification is separate from your current admin permissions."}
-            </p>
-            <button
-              className="text-button"
-              onClick={() => act("/resend-verification", "POST", {})}
-            >
-              Resend verification
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
       <h3>Your collection</h3>
       <div className="inventory-grid">
         {items
@@ -2187,7 +2179,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
                     <strong>
                       {u.username} {u.admin && <Verified />}
                     </strong>
-                    <small>{u.email}</small>
+                    <small>Player account</small>
                   </div>
                   <span className={"user-status " + (u.banned ? "banned" : "")}>
                     {u.banned
@@ -2211,11 +2203,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
                   </button>
                   <button
                     className={"btn " + (u.banned ? "secondary" : "danger")}
-                    disabled={
-                      busy ||
-                      u.email === "somkene.ebukambonu@millburnacademy.org.uk" ||
-                      u.email === "kamneto.ebukambonu@millburnacademy.org.uk"
-                    }
+                    disabled={busy || u.admin}
                     onClick={() => {
                       if (
                         window.confirm(

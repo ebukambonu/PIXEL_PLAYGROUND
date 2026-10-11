@@ -2,11 +2,11 @@
 
 An arcade and community website with 15 playable games, 8 utility apps, persistent accounts, shared chat, a 22-item play-coin shop, and owner administration. The design includes a responsive dark dashboard and unlockable themes.
 
-## Free public hosting
+## Google Sites and Supabase
 
-For Vercel, [follow the full-site deployment guide](deployment/VERCEL.md). The frontend is static and the backend runs as a Node.js function with durable Turso storage. `vercel.json` configures the build and API routing. Run `npm run test:vercel` to exercise the API through the function adapter locally. Actual Vercel deployment requires connecting your account and adding database/email credentials.
+The current requested deployment uses Google Sites for display, Supabase Storage for frontend assets, Supabase Edge Functions for the API, and Supabase PostgreSQL for persistent data. Vercel is not required. [Follow the deployment and data migration guide](deployment/SUPABASE.md). Configure the public function URL and run `npm run build:google-sites`, then publish assets with `npm run publish:google-sites`. The generated small HTML embed loads the full app directly from Supabase.
 
-For a free public site with durable accounts and chat, use Render Free with Turso Free. [Follow the deployment guide](deployment/FREE_HOSTING.md); `render.yaml` declares a free web service and requires the hosted database. A supplied `.onrender.com` address avoids purchasing a custom domain. Free-tier usage limits and cold starts still apply. Brevo is supported for verification email using a sender you can verify without purchasing a domain. External database and email service credentials must be added securely in the hosting dashboard.
+The prior Render/Koyeb/Vercel deployment guides remain available for alternative Node hosting. PostgreSQL is selected when `PIXEL_DATABASE_URL` or `SUPABASE_DB_URL` is set; Turso and local SQLite remain supported for migration and development. Hosted credentials must be supplied securely.
 
 ## Start developing
 
@@ -27,32 +27,18 @@ npm start
 
 `npm start` serves the production build on traditional Node hosts. Configure `APP_URL` and use either a persistent volume for `DATABASE_PATH` or Turso. Back up the database with SQLite's backup facilities (include WAL state when copying a live database). Use one application instance for local SQLite files. Vercel uses remote Turso storage, with transactions and database rate limits shared across function instances. Chat uses polling. Existing local SQLite data is preserved.
 
-## Owner accounts and verification
+## Accounts and owners
 
-These addresses are eligible for owner powers:
+Players sign up and sign in with usernames and passwords; no email is required. Somkene and Kamneto are the reserved admin usernames. Their initial registration requires the private `PIXEL_ADMIN_SETUP_KEY`, configured on the backend and entered into the special sign-up field. Admin permissions are stored as a database role, never inferred from a player-supplied email address or role field. Remove the setup key once both admin accounts exist. Username-only accounts have no email-based password recovery.
 
-- `somkene.ebukambonu@millburnacademy.org.uk`: explicitly exempt from email verification. Registration or login immediately enables admin permissions; its email remains unverified. Anyone able to register this address can become an admin. Existing accounts with this exact address also receive the exception.
-
-The following addresses continue to require email verification:
-
-- `kamneto.ebukambonu@millburnacademy.org.uk`
-
-Each owner listed as requiring verification registers normally, then verifies the address through the email link while signed in to the same account. Merely entering one of these addresses **does not** grant admin powers. Privileged actions check the server-side allowlist and either verified email or the single explicit `millburnacademy.org.uk` exception on every request. Owners receive a verification tick in profiles and chat. Changing an email address or promoting an arbitrary user is not exposed through the UI.
-
-For a free sender without a purchased domain, configure Brevo with `BREVO_API_KEY`, a verified `EMAIL_FROM`, and `APP_URL`. On Render, `APP_URL` can default to the supplied external service URL. Brevo takes priority when its key is configured.
-
-Alternatively, configure HTTPS mail delivery through Resend using `RESEND_API_KEY`, a verified sending address in `EMAIL_FROM`, and the public `APP_URL`. The environment draft declares these requirements; add the key securely in environment settings. The API uses `api.resend.com` and ordinary TLS verification. Actual external delivery is untested until a provider key and verified sender are supplied.
-
-Alternatively, configure an SMTP provider using environment variables: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `APP_URL`. `.env.example` contains placeholders only. For a local `.env`, use `node --env-file=.env --watch server.js` for development or `NODE_ENV=production node --env-file=.env server.js` for production. Standard npm commands use already exported environment variables. SMTP uses TLS verification and requires STARTTLS on ports other than 465. Configure the mail provider to send from `SMTP_FROM`, and allow egress to that provider. Never put credentials into Git, chat, or saved scripts. No email service credentials or real passwords are bundled.
-
-Email delivery is **not configured in the initial cloud instance**. Regular accounts and gameplay work, but owner admin access remains locked until verification can be completed, apart from the explicit `millburnacademy.org.uk` exception. Server-side authorization and admin behavior are tested using an isolated test database; those test accounts never enter the real site database.
+The migration tool preserves existing users, password hashes and privileges. Legacy eligible owners can become Somkene/Kamneto while keeping their passwords, IDs and inventory; name collisions stop migration. Shared accounts and chat use the private `pixel_playground` PostgreSQL schema. Google Sites uses bearer sessions to avoid relying on cross-site cookies; ordinary Node hosting retains HttpOnly cookies.
 
 ## Features
 
 - Games: daily Wordle, Tetris, Snake, 2048, Minesweeper, Memory Match, Tic Tac Toe (computer or local two-player), Connect Four (local two-player), Pong (computer), Breakout, Reaction Time, Trivia Quest, Sudoku, Hangman, and 15 Puzzle (always shuffled through legal moves so it is solvable).
 - Wordle: one deterministic UTC daily puzzle, six guesses, duplicate-letter clues, browser progress persistence, 14,826 accepted dictionary guesses, and 1,737 curated daily answers. It is a custom Wordle-style game. The expanded answer pool starts on 2026-10-12 UTC, preserving the previous schedule before that date. Refresh or reopen the game after midnight for the next puzzle. [Dictionary attribution](licenses/README.md).
 - Apps: calculator with parentheses and percentages, world clock, stopwatch with laps, countdown timer, browser notes, unit converter, dice roller, and Pomodoro focus timer.
-- Accounts: scrypt password hashes, HttpOnly sessions, email verification, welcome coins, and once-per-day coin claims.
+- Accounts: scrypt password hashes, HttpOnly sessions, username login, welcome coins, and once-per-day coin claims.
 - Chat: shared global room, owner-managed chat rooms, message deletion, room clearing, and server-enforced bans. Messages refresh every 2.5 seconds; settings and room changes refresh every 15 seconds.
 - Shop: 8 themes and 14 avatars, server-authoritative pricing, inventory, and equip controls. New themes include Forest, Neon, Arctic and Gold; new avatars include an owl, penguin, frog, alien, wizard, octopus, tiger and firebird. Owners can edit every item's name, description, price and availability. Coins have no cash value; no real-money payment gateway is included.
 - Admin: player bans/unbans, balances and usernames, global announcements, site text, game visibility and copy, shop availability and prices, room create/edit/delete, maintenance mode, chat pause, shop pause, and an action log.

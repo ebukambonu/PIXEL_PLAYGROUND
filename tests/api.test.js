@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { openDatabase } from "../src/database.js";
 import { createHash, randomBytes } from "node:crypto";
 const dir = mkdtempSync(path.join(tmpdir(), "pixel-test-")),
   database = path.join(dir, "test.db"),
@@ -60,12 +60,14 @@ before(async () => {
       PORT: String(port),
       DATABASE_PATH: database,
       NODE_ENV: "production",
+      SUPABASE_DB_URL: process.env.PIXEL_TEST_SUPABASE_URL || "",
       TURSO_DATABASE_URL: "",
       TURSO_AUTH_TOKEN: "",
       REQUIRE_REMOTE_DATABASE: "false",
       BREVO_API_KEY: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
+      PIXEL_ADMIN_SETUP_KEY: "pixel-local-admin-setup-test",
       APP_URL: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -122,12 +124,16 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       assert.equal(res.data.user.admin, false);
       assert.equal(res.data.user.password, undefined);
       regular = res.cookie;
-      const db = new DatabaseSync(database);
+      const db = openDatabase({
+        file: database,
+        postgresUrl: process.env.PIXEL_TEST_SUPABASE_URL,
+      });
       assert.notEqual(
-        db.prepare("SELECT password FROM users WHERE id=1").get().password,
+        (await db.prepare("SELECT password FROM users WHERE id=1").get())
+          .password,
         "correct horse battery",
       );
-      db.close();
+      await db.close();
     },
   );
   await t.test(
@@ -142,11 +148,12 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     },
   );
   await t.test(
-    "explicit corrected-email exception gains admin without marking its email verified",
+    "Somkene setup creates an admin account without email verification",
     async () => {
       const registered = await req("/register", "POST", {
         email: "somkene.ebukambonu@millburnacademy.org.uk",
-        username: "ExceptionOwner",
+        username: "Somkene",
+        adminSetupKey: "pixel-local-admin-setup-test",
         password: "exception owner test password",
       });
       assert.equal(registered.status, 200);
@@ -197,11 +204,14 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
         password: "mistaken address test password",
       });
       assert.equal(registered.data.user.admin, false);
-      const db = new DatabaseSync(database);
-      db.prepare("UPDATE users SET verified=1 WHERE id=?").run(
-        registered.data.user.id,
-      );
-      db.close();
+      const db = openDatabase({
+        file: database,
+        postgresUrl: process.env.PIXEL_TEST_SUPABASE_URL,
+      });
+      await db
+        .prepare("UPDATE users SET verified=1 WHERE id=?")
+        .run(registered.data.user.id);
+      await db.close();
       assert.equal(
         (await req("/bootstrap", "GET", undefined, registered.cookie)).data.user
           .admin,
@@ -222,11 +232,14 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
         password: "wrong domain test password",
       });
       assert.equal(res.data.user.admin, false);
-      const db = new DatabaseSync(database);
-      db.prepare("UPDATE users SET verified=1 WHERE id=?").run(
-        res.data.user.id,
-      );
-      db.close();
+      const db = openDatabase({
+        file: database,
+        postgresUrl: process.env.PIXEL_TEST_SUPABASE_URL,
+      });
+      await db
+        .prepare("UPDATE users SET verified=1 WHERE id=?")
+        .run(res.data.user.id);
+      await db.close();
       assert.equal(
         (await req("/admin", "GET", undefined, res.cookie)).status,
         403,
@@ -245,11 +258,14 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       password: "safe long password",
     });
     other = res.cookie;
-    const db = new DatabaseSync(database);
-    db.prepare("UPDATE users SET verified=1 WHERE email=?").run(
-      "kamneto.ebukambonu@gmail.com",
-    );
-    db.close();
+    const db = openDatabase({
+      file: database,
+      postgresUrl: process.env.PIXEL_TEST_SUPABASE_URL,
+    });
+    await db
+      .prepare("UPDATE users SET verified=1 WHERE email=?")
+      .run("kamneto.ebukambonu@gmail.com");
+    await db.close();
     assert.equal(
       (await req("/bootstrap", "GET", undefined, other)).data.user.admin,
       false,
@@ -258,17 +274,24 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
   await t.test(
     "email verification remains single-use for the exempt owner",
     async () => {
-      const db = new DatabaseSync(database),
+      const db = openDatabase({
+          file: database,
+          postgresUrl: process.env.PIXEL_TEST_SUPABASE_URL,
+        }),
         token = randomBytes(32).toString("hex"),
-        ownerId = db
-          .prepare("SELECT id FROM users WHERE email=?")
-          .get("somkene.ebukambonu@millburnacademy.org.uk").id;
-      db.prepare("INSERT INTO verifications VALUES (?,?,?)").run(
-        createHash("sha256").update(token).digest("hex"),
-        ownerId,
-        Date.now() + 60000,
-      );
-      db.close();
+        ownerId = (
+          await db
+            .prepare("SELECT id FROM users WHERE email=?")
+            .get("somkene.ebukambonu@millburnacademy.org.uk")
+        ).id;
+      await db
+        .prepare("INSERT INTO verifications VALUES (?,?,?)")
+        .run(
+          createHash("sha256").update(token).digest("hex"),
+          ownerId,
+          Date.now() + 60000,
+        );
+      await db.close();
       assert.equal((await req("/verify?token=" + token)).status, 403);
       assert.equal(
         (await req("/verify?token=" + token, "GET", undefined, owner)).status,
@@ -283,19 +306,23 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     },
   );
   await t.test(
-    "second corrected owner address is recognized only after verification",
+    "Kamneto setup creates an admin account without requiring verification",
     async () => {
       const res = await req("/register", "POST", {
         email: "kamneto.ebukambonu@millburnacademy.org.uk",
         username: "Kamneto",
+        adminSetupKey: "pixel-local-admin-setup-test",
         password: "correct owner password",
       });
-      assert.equal(res.data.user.admin, false);
-      const db = new DatabaseSync(database);
-      db.prepare("UPDATE users SET verified=1 WHERE email=?").run(
-        "kamneto.ebukambonu@millburnacademy.org.uk",
-      );
-      db.close();
+      assert.equal(res.data.user.admin, true);
+      const db = openDatabase({
+        file: database,
+        postgresUrl: process.env.PIXEL_TEST_SUPABASE_URL,
+      });
+      await db
+        .prepare("UPDATE users SET verified=1 WHERE email=?")
+        .run("kamneto.ebukambonu@millburnacademy.org.uk");
+      await db.close();
       assert.equal(
         (await req("/bootstrap", "GET", undefined, res.cookie)).data.user.admin,
         true,
@@ -581,21 +608,64 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     },
   );
   await t.test(
+    "username-only accounts cannot claim admin names or inject roles",
+    async () => {
+      const res = await req("/register", "POST", {
+        username: "NoEmailPlayer",
+        password: "username only password",
+        role: "admin",
+      });
+      assert.equal(res.status, 200);
+      assert.equal(res.data.user.admin, false);
+      assert.equal(
+        (
+          await req("/login", "POST", {
+            username: "noemailplayer",
+            password: "username only password",
+          })
+        ).status,
+        200,
+      );
+      assert.equal(
+        (
+          await req("/register", "POST", {
+            username: "sOmKeNe",
+            password: "claim reserved username",
+          })
+        ).status,
+        403,
+      );
+      assert.equal(
+        (await req("/profile", "PATCH", { username: "Kamneto" }, res.cookie))
+          .status,
+        403,
+      );
+    },
+  );
+  await t.test(
     "rate limits use shared database records rather than instance memory",
     async () => {
-      const db = new DatabaseSync(database);
-      const key = db
-        .prepare("SELECT key FROM rate_limits WHERE key LIKE 'auth:%' LIMIT 1")
-        .get().key;
-      const count = db
-        .prepare("SELECT COUNT(*) AS count FROM rate_limits WHERE key=?")
-        .get(key).count;
+      const db = openDatabase({
+        file: database,
+        postgresUrl: process.env.PIXEL_TEST_SUPABASE_URL,
+      });
+      const key = (
+        await db
+          .prepare(
+            "SELECT key FROM rate_limits WHERE key LIKE 'auth:%' LIMIT 1",
+          )
+          .get()
+      ).key;
+      const count = (
+        await db
+          .prepare("SELECT COUNT(*) AS count FROM rate_limits WHERE key=?")
+          .get(key)
+      ).count;
       for (let index = count; index < 20; index++)
-        db.prepare("INSERT INTO rate_limits VALUES (?,?)").run(
-          key,
-          Date.now() + 3600000,
-        );
-      db.close();
+        await db
+          .prepare("INSERT INTO rate_limits VALUES (?,?)")
+          .run(key, Date.now() + 3600000);
+      await db.close();
       assert.equal(
         (
           await req("/login", "POST", {

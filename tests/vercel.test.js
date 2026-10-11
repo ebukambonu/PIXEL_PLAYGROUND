@@ -64,10 +64,11 @@ test("Vercel refuses ephemeral local account storage without Turso", () => {
         TURSO_DATABASE_URL: "",
         TURSO_AUTH_TOKEN: "",
         REQUIRE_REMOTE_DATABASE: "false",
+        SUPABASE_DB_URL: "",
       },
       encoding: "utf8",
     },
   );
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /requires TURSO_DATABASE_URL/);
+  assert.match(result.stderr, /requires SUPABASE_DB_URL or TURSO_DATABASE_URL/);
 });
