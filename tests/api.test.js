@@ -68,14 +68,11 @@ after(async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 test("account, economy, moderation and ownership boundaries", async (t) => {
-  await t.test("allows HTTPS embedding including Google Sites preview frames", async () => {
+  await t.test("sends no framing restrictions for Google Sites embedding", async () => {
     const res = await fetch(base + "/");
     assert.equal(res.status, 200);
     assert.equal(res.headers.get("x-frame-options"), null);
-    assert.equal(
-      res.headers.get("content-security-policy"),
-      "frame-ancestors 'self' https:",
-    );
+    assert.equal(res.headers.get("content-security-policy"), null);
   });
   await t.test("public bootstrap includes shared rooms and shop", async () => {
     const res = await req("/bootstrap");
