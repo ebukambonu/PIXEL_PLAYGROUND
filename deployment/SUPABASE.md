@@ -41,7 +41,6 @@ In Supabase **Edge Functions → Secrets**, configure:
 | Secret                  | Value                                                                          |
 | ----------------------- | ------------------------------------------------------------------------------ |
 | `PIXEL_DATABASE_URL`    | Your private PostgreSQL transaction-pooler URI                                 |
-| `PIXEL_ADMIN_SETUP_KEY` | A long random private setup code for initially creating the two admin accounts |
 
 The database adapter enforces TLS certificate verification. If a provider-specific certificate is required, add its official PEM certificate as `SUPABASE_CA_CERT`; do not disable verification. The tables are in the private `pixel_playground` schema, not the public Data API schema. No database password or service-role key belongs in frontend code.
 
@@ -70,7 +69,7 @@ Open `dist-google-sites/GOOGLE_SITES_APP.html` and copy its contents into **Goog
 
 ## 5. Accounts and validation
 
-Players register a username and a password of at least ten characters. Somkene and Kamneto are reserved admin names; creating them requires the private setup code entered into the special field on sign-up. A supplied `role` or claimed email address does not grant admin access. If the admin accounts were migrated, sign in with their existing passwords and updated usernames instead. Remove the setup-code secret after both admins exist to disable further admin creation.
+Players register a username and a password of at least ten characters. Registration with Somkene or Kamneto grants admin access automatically, without a setup code. Register both names promptly: anyone can claim an unused admin name. Existing admin accounts retain their passwords and permissions. Claimed email addresses and supplied role fields do not grant admin access.
 
 Check sign-in, chat from two sessions, purchases and theme/avatar equipment, Wordle, Hangman, 15 Puzzle and admin announcements/bans. Google Sites sign-in uses explicit bearer sessions, so it does not depend on third-party cookies. Session storage is confined to the embedded browser origin; if that storage is unavailable, the session lasts until the page reloads. Keep passwords safe: email-based recovery is not provided for username-only accounts.
 

@@ -452,16 +452,6 @@ export async function createBackend(db) {
       )
         fail("Password must be 10–128 characters.");
       const reserved = ADMINS.has(username.toLowerCase());
-      if (
-        reserved &&
-        (!process.env.PIXEL_ADMIN_SETUP_KEY ||
-          typeof b.adminSetupKey !== "string" ||
-          !timingSafeEqual(
-            Buffer.from(sha(b.adminSetupKey)),
-            Buffer.from(sha(process.env.PIXEL_ADMIN_SETUP_KEY)),
-          ))
-      )
-        fail("This admin username requires the private admin setup code.", 403);
       const password = b.password;
       if (
         await db

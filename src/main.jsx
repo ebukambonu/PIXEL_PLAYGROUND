@@ -1352,8 +1352,7 @@ function Modal({ children, onClose, title, subtitle, narrow = false }) {
   );
 }
 function Auth({ mode, setMode, onSuccess }) {
-  const [adminSetupKey, setAdminSetupKey] = useState(""),
-    [password, setPassword] = useState(""),
+  const [password, setPassword] = useState(""),
     [username, setUsername] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -1365,7 +1364,7 @@ function Auth({ mode, setMode, onSuccess }) {
       const data = await api(
         mode === "login" ? "/login" : "/register",
         "POST",
-        { password, username, adminSetupKey },
+        { password, username },
       );
       onSuccess(data);
     } catch (e) {
@@ -1398,19 +1397,6 @@ function Auth({ mode, setMode, onSuccess }) {
           </div>
         </label>
       }
-      {mode === "register" &&
-        ["somkene", "kamneto"].includes(username.toLowerCase()) && (
-          <label>
-            Admin setup code
-            <input
-              type="password"
-              required
-              value={adminSetupKey}
-              autoComplete="off"
-              onChange={(event) => setAdminSetupKey(event.target.value)}
-            />
-          </label>
-        )}
       <label>
         Password
         <div className="form-input">

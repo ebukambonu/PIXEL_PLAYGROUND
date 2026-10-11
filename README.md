@@ -29,7 +29,7 @@ npm start
 
 ## Accounts and owners
 
-Players sign up and sign in with usernames and passwords; no email is required. Somkene and Kamneto are the reserved admin usernames. Their initial registration requires the private `PIXEL_ADMIN_SETUP_KEY`, configured on the backend and entered into the special sign-up field. Admin permissions are stored as a database role, never inferred from a player-supplied email address or role field. Remove the setup key once both admin accounts exist. Username-only accounts have no email-based password recovery.
+Players sign up and sign in with usernames and passwords; no email is required. Somkene and Kamneto are the reserved admin usernames. Registering either reserved name grants admin access without a setup code. Anyone can claim an unused admin name, so register both promptly. Roles are stored in the database; existing accounts retain their permissions. Username-only accounts have no email-based password recovery.
 
 The migration tool preserves existing users, password hashes and privileges. Legacy eligible owners can become Somkene/Kamneto while keeping their passwords, IDs and inventory; name collisions stop migration. Shared accounts and chat use the private `pixel_playground` PostgreSQL schema. Google Sites uses bearer sessions to avoid relying on cross-site cookies; ordinary Node hosting retains HttpOnly cookies.
 

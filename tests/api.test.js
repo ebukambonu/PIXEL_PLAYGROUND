@@ -67,7 +67,6 @@ before(async () => {
       BREVO_API_KEY: "",
       RESEND_API_KEY: "",
       SMTP_HOST: "",
-      PIXEL_ADMIN_SETUP_KEY: "pixel-local-admin-setup-test",
       APP_URL: "",
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -153,7 +152,6 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       const registered = await req("/register", "POST", {
         email: "somkene.ebukambonu@millburnacademy.org.uk",
         username: "Somkene",
-        adminSetupKey: "pixel-local-admin-setup-test",
         password: "exception owner test password",
       });
       assert.equal(registered.status, 200);
@@ -311,7 +309,6 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       const res = await req("/register", "POST", {
         email: "kamneto.ebukambonu@millburnacademy.org.uk",
         username: "Kamneto",
-        adminSetupKey: "pixel-local-admin-setup-test",
         password: "correct owner password",
       });
       assert.equal(res.data.user.admin, true);
@@ -633,7 +630,7 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
             password: "claim reserved username",
           })
         ).status,
-        403,
+        409,
       );
       assert.equal(
         (await req("/profile", "PATCH", { username: "Kamneto" }, res.cookie))
