@@ -4,7 +4,7 @@ Google Sites displays the app. Supabase Storage serves the game's JavaScript, CS
 
 ## Your configured project
 
-The Google Sites embed in `deployment/GOOGLE_SITES_APP.html` is built for `https://vbidopmddmrgweqjktut.supabase.co`. The project reference is `vbidopmddmrgweqjktut`. The backend function and Storage assets still need deployment; copying the HTML alone does not deploy them. No live data migration has been performed.
+The Google Sites embed in `deployment/GOOGLE_SITES_APP.html` is built for `https://vbidopmddmrgweqjktut.supabase.co`. The project reference is `vbidopmddmrgweqjktut`. The backend function and Storage assets were deployed and the public bootstrap endpoint verified on 11 October 2026. Existing records were migrated from the original Turso database in one checked PostgreSQL transaction; the source was retained and a private backup saved outside this repository. The older source had no rate_limits table, so that new table starts empty. Avoid further writes through the previous host: changes made there after migration are not copied automatically. Copying the HTML into Google Sites and publishing that page is still required.
 
 ## 1. Create a free project
 
