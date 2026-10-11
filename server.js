@@ -932,7 +932,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader(
     "Content-Security-Policy",
-    "frame-ancestors 'self' https://sites.google.com https://*.googleusercontent.com",
+    "frame-ancestors 'self' https:",
   );
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   try {
