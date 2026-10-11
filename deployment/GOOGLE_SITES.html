@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pixel Playground</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #101015; color: #f2f1f6; font: 14px system-ui, sans-serif; }
+      .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #ffffff20; }
+      .toolbar p { margin: 6px 0 0; color: #c4c0d1; font-size: 12px; }
+      .toolbar a { display: inline-block; padding: 10px 14px; border-radius: 8px; background: #bafa75; color: #17210e; text-decoration: none; font-weight: 700; }
+      .toolbar a:focus-visible { outline: 3px solid #ffffff; outline-offset: 3px; }
+      iframe { display: block; width: 100%; height: max(760px, calc(100vh - 90px)); border: 0; background: #101015; }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div>
+        <strong>Pixel Playground</strong>
+        <p>For sign-in or admin access, open the full site if your browser restricts embedded login.</p>
+      </div>
+      <a href="https://pixel-playground-eta.vercel.app/" target="_blank" rel="noopener noreferrer">Open full site ↗</a>
+    </div>
+    <iframe
+      src="https://pixel-playground-eta.vercel.app/"
+      title="Pixel Playground — games, apps, shop and community"
+      loading="eager"
+      allow="fullscreen"
+      allowfullscreen
+    ></iframe>
+  </body>
+</html>
