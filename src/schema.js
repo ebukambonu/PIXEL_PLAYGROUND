@@ -1,5 +1,5 @@
 export const SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, email TEXT UNIQUE NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, verified INTEGER DEFAULT 0, banned INTEGER DEFAULT 0, coins INTEGER DEFAULT 500, avatar TEXT DEFAULT '👾', theme TEXT DEFAULT 'midnight', role TEXT DEFAULT 'player', created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, email TEXT UNIQUE NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, verified INTEGER DEFAULT 0, banned INTEGER DEFAULT 0, coins INTEGER DEFAULT 500, avatar TEXT DEFAULT '👾', theme TEXT DEFAULT 'midnight', role TEXT DEFAULT 'player', display_role TEXT DEFAULT 'gamer', created TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id INTEGER REFERENCES users(id), expires INTEGER);
 CREATE TABLE IF NOT EXISTS verifications(token TEXT PRIMARY KEY, user_id INTEGER REFERENCES users(id), expires INTEGER);
 CREATE TABLE IF NOT EXISTS rooms(id INTEGER PRIMARY KEY, name TEXT UNIQUE, description TEXT);
@@ -15,12 +15,19 @@ CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY, actor INTEGER REFERENCE
 
 export async function ensureSchema(db) {
   await db.exec(SCHEMA_SQL);
-  if (db.postgres)
+  if (db.postgres) {
     await db.exec(
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'player'",
     );
-  else {
+    await db.exec(
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS display_role TEXT DEFAULT 'gamer'",
+    );
+  } else {
     const columns = await db.prepare("PRAGMA table_info(users)").all();
+    if (!columns.some((column) => column.name === "display_role"))
+      await db.exec(
+        "ALTER TABLE users ADD COLUMN display_role TEXT DEFAULT 'gamer'",
+      );
     if (!columns.some((column) => column.name === "role")) {
       await db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'player'");
       // Upgrade only existing legacy owners, never newly registered email claims.

@@ -74,3 +74,9 @@ Players register a username and a password of at least ten characters. Registrat
 Check sign-in, chat from two sessions, purchases and theme/avatar equipment, Wordle, Hangman, 15 Puzzle and admin announcements/bans. Google Sites sign-in uses explicit bearer sessions, so it does not depend on third-party cookies. Session storage is confined to the embedded browser origin; if that storage is unavailable, the session lasts until the page reloads. Keep passwords safe: email-based recovery is not provided for username-only accounts.
 
 Supabase's free database, storage and Edge Functions have usage limits, and free projects can pause when inactive. Check current https://supabase.com/pricing and keep backups. School network access is determined by its filtering policy. Local Deno/PostgreSQL checks do not prove live deployment, Supabase connectivity or Google Sites rendering. Those require your actual project and secure credentials.
+
+## Games and player roles
+
+The app includes 19 games. Neon Citadel, Dungeon Depths, Starfighter and Gem Quest support saved leaderboard scores. Each game includes its own controls and instructions, including touch controls.
+
+In the admin panel, open Players, edit a player, choose a Display role and save. Roles include Gamer, Supporter, Dev, Admin, OG, Owner and OP. Admin, Dev and Owner confer admin-panel access and can assign roles; the other roles affect names and badges only. Owner names use a rainbow gradient. Somkene and Kamneto are protected founders and cannot be banned. Role changes are validated and audited by the API. Existing data is preserved when the new display_role column is added. Refresh the page after your role changes.

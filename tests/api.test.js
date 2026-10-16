@@ -639,6 +639,103 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
       );
     },
   );
+  await t.test("only admins can assign validated display roles", async () => {
+    const p = await req("/register", "POST", {
+      username: "RoleTestPlayer",
+      password: "role test password",
+      displayRole: "owner",
+    });
+    assert.equal(p.data.user.displayRole, "gamer");
+    assert.equal(
+      (
+        await req(
+          "/admin/users",
+          "PATCH",
+          { id: p.data.user.id, displayRole: "owner" },
+          p.cookie,
+        )
+      ).status,
+      403,
+    );
+    for (const role of [
+      "supporter",
+      "dev",
+      "admin",
+      "og",
+      "owner",
+      "gamer",
+      "op",
+    ]) {
+      const res = await req(
+        "/admin/users",
+        "PATCH",
+        { id: p.data.user.id, displayRole: role },
+        owner,
+      );
+      assert.equal(res.status, 200);
+      assert.equal(res.data.user.displayRole, role);
+      assert.equal(
+        res.data.user.admin,
+        ["admin", "dev", "owner"].includes(role),
+      );
+      assert.equal(
+        (await req("/admin", "GET", null, p.cookie)).status,
+        ["admin", "dev", "owner"].includes(role) ? 200 : 403,
+      );
+    }
+    assert.equal(
+      (
+        await req(
+          "/admin/users",
+          "PATCH",
+          { id: p.data.user.id, displayRole: "<script>" },
+          owner,
+        )
+      ).status,
+      400,
+    );
+    for (const game of [
+      "tower-defense",
+      "dungeon-crawl",
+      "starfighter",
+      "gem-quest",
+    ]) {
+      const res = await req("/scores", "POST", { game, score: 1200 }, p.cookie);
+      assert.equal(res.status, 200);
+    }
+    await req(
+      "/admin/users",
+      "PATCH",
+      { id: p.data.user.id, displayRole: "dev" },
+      owner,
+    );
+    const adminData = await req("/admin", "GET", null, p.cookie);
+    const founder = adminData.data.users.find((u) => u.username === "Somkene");
+    assert.equal(founder.protected, true);
+    assert.equal(
+      (
+        await req(
+          "/admin/users",
+          "PATCH",
+          { id: founder.id, banned: true },
+          p.cookie,
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await req(
+          "/admin/users",
+          "PATCH",
+          { id: p.data.user.id, displayRole: "supporter" },
+          p.cookie,
+        )
+      ).status,
+      200,
+    );
+    assert.equal((await req("/admin", "GET", null, p.cookie)).status, 403);
+  });
   await t.test(
     "rate limits use shared database records rather than instance memory",
     async () => {

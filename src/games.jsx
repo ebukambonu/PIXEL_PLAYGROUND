@@ -21,7 +21,15 @@ import {
   connectWinner,
 } from "./gameLogic";
 import { Hangman, FifteenPuzzle } from "./classics";
+import {
+  ADVANCED_GAMES,
+  TowerDefense,
+  DungeonCrawl,
+  Starfighter,
+  GemQuest,
+} from "./advancedGames";
 export const GAME_CATALOG = [
+  ...ADVANCED_GAMES,
   {
     id: "hangman",
     name: "Hangman",
@@ -1606,6 +1614,14 @@ function Sudoku({ onScore }) {
 }
 export function GamePlayer({ game, onScore }) {
   switch (game.id) {
+    case "tower-defense":
+      return <TowerDefense onScore={onScore} />;
+    case "dungeon-crawl":
+      return <DungeonCrawl onScore={onScore} />;
+    case "starfighter":
+      return <Starfighter onScore={onScore} />;
+    case "gem-quest":
+      return <GemQuest onScore={onScore} />;
     case "hangman":
       return <Hangman onScore={onScore} />;
     case "fifteen-puzzle":

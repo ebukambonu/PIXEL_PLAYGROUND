@@ -35,12 +35,13 @@ The migration tool preserves existing users, password hashes and privileges. Leg
 
 ## Features
 
-- Games: daily Wordle, Tetris, Snake, 2048, Minesweeper, Memory Match, Tic Tac Toe (computer or local two-player), Connect Four (local two-player), Pong (computer), Breakout, Reaction Time, Trivia Quest, Sudoku, Hangman, and 15 Puzzle (always shuffled through legal moves so it is solvable).
+- Games: Neon Citadel (ten-wave tower defense with upgrades and bosses), Dungeon Depths (five-floor turn-based adventure), Starfighter (space combat with power-ups and a mothership), Gem Quest (six-stage match-three cascade challenge), daily Wordle, Tetris, Snake, 2048, Minesweeper, Memory Match, Tic Tac Toe (computer or local two-player), Connect Four (local two-player), Pong (computer), Breakout, Reaction Time, Trivia Quest, Sudoku, Hangman, and 15 Puzzle (always shuffled through legal moves so it is solvable).
 - Wordle: one deterministic UTC daily puzzle, six guesses, duplicate-letter clues, browser progress persistence, 14,826 accepted dictionary guesses, and 1,737 curated daily answers. It is a custom Wordle-style game. The expanded answer pool starts on 2026-10-12 UTC, preserving the previous schedule before that date. Refresh or reopen the game after midnight for the next puzzle. [Dictionary attribution](licenses/README.md).
 - Apps: calculator with parentheses and percentages, world clock, stopwatch with laps, countdown timer, browser notes, unit converter, dice roller, and Pomodoro focus timer.
 - Accounts: scrypt password hashes, HttpOnly sessions, username login, welcome coins, and once-per-day coin claims.
 - Chat: shared global room, owner-managed chat rooms, message deletion, room clearing, and server-enforced bans. Messages refresh every 2.5 seconds; settings and room changes refresh every 15 seconds.
 - Shop: 8 themes and 14 avatars, server-authoritative pricing, inventory, and equip controls. New themes include Forest, Neon, Arctic and Gold; new avatars include an owl, penguin, frog, alien, wizard, octopus, tiger and firebird. Owners can edit every item's name, description, price and availability. Coins have no cash value; no real-money payment gateway is included.
+- Roles: admins can assign Gamer, Supporter, Dev, Admin, OG, Owner and OP through the player editor. Each has a name colour and badge; Owner has an animated rainbow name (static with reduced-motion preferences). Admin, Dev and Owner can access the admin panel and grant roles. Somkene and Kamneto retain protected founder permissions and cannot be banned. Other roles do not grant admin access.
 - Admin: player bans/unbans, balances and usernames, global announcements, site text, game visibility and copy, shop availability and prices, room create/edit/delete, maintenance mode, chat pause, shop pause, and an action log.
 
 ### Owner commands

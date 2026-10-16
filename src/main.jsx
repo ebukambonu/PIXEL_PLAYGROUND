@@ -46,6 +46,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { GAME_CATALOG, GamePlayer } from "./games";
+import { DISPLAY_ROLES, ROLE_LABELS, displayRole } from "./roles.js";
 import { APP_CATALOG, AppPlayer } from "./apps";
 import "./styles.css";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -70,8 +71,7 @@ async function api(path, method = "GET", body) {
   if (API_BASE && Object.hasOwn(data, "sessionToken")) {
     edgeSession = data.sessionToken;
     try {
-      if (edgeSession)
-        sessionStorage.setItem(SESSION_STORAGE_KEY, edgeSession);
+      if (edgeSession) sessionStorage.setItem(SESSION_STORAGE_KEY, edgeSession);
       else sessionStorage.removeItem(SESSION_STORAGE_KEY);
     } catch {}
   }
@@ -89,6 +89,15 @@ function PixelLogo() {
       <i />
       <i />
       <i />
+    </span>
+  );
+}
+function PlayerName({ player }) {
+  const role = displayRole(player);
+  return (
+    <span className={"player-name role-" + role}>
+      <span className="role-name">{player.username}</span>
+      <span className="role-badge">{ROLE_LABELS[role]}</span>
     </span>
   );
 }
@@ -211,6 +220,14 @@ function GameArt({ game, mini = false }) {
           ))}
           <span />
         </div>
+      ) : ["citadel", "dungeon", "starfighter", "gems"].includes(game.icon) ? (
+        <span className="art-quest">
+          {
+            { citadel: "🏰", dungeon: "🧙", starfighter: "🚀", gems: "💎" }[
+              game.icon
+            ]
+          }
+        </span>
       ) : game.icon === "hangman" ? (
         <span className="art-large art-hangman">A _ C _ D E</span>
       ) : game.icon === "fifteen" ? (
@@ -550,7 +567,7 @@ function App() {
                 {accountMenu && (
                   <div className="account-menu">
                     <strong>
-                      {user.username} {user.admin && <Verified />}
+                      <PlayerName player={user} /> {user.admin && <Verified />}
                     </strong>
                     <small>Player account</small>
                     <button
@@ -820,6 +837,7 @@ function App() {
                       "Puzzle",
                       "Word",
                       "Strategy",
+                      "Adventure",
                       "Quick play",
                     ].map((c) => (
                       <button
@@ -913,6 +931,7 @@ function App() {
                       "Puzzle",
                       "Word",
                       "Strategy",
+                      "Adventure",
                       "Quick play",
                       "Favorites",
                     ].map((c) => (
@@ -1470,7 +1489,7 @@ function Profile({ user, emailAvailable, act, items, onLogin }) {
       <div className="profile-hero">
         <span>{user.avatar}</span>
         <h2>
-          {user.username} {user.admin && <Verified />}
+          <PlayerName player={user} /> {user.admin && <Verified />}
         </h2>
         <p>Player account</p>
         <small>{user.admin ? "Verified administrator" : "Player"}</small>
@@ -1666,7 +1685,9 @@ function Chat({ boot, api, act, onLogin, notify }) {
                   <span className="message-avatar">{m.avatar}</span>
                   <div>
                     <div className="message-meta">
-                      <strong>{m.username}</strong>
+                      <strong>
+                        <PlayerName player={m} />
+                      </strong>
                       {m.admin && <Verified />}
                       <time>
                         {new Date(m.created + "Z").toLocaleTimeString("en-GB", {
@@ -1797,7 +1818,9 @@ function Leaderboard({ api }) {
               </span>
               <span className="leaderboard-player">
                 <i>{p.avatar}</i>
-                <strong>{p.username}</strong>
+                <strong>
+                  <PlayerName player={p} />
+                </strong>
               </span>
               <span>{GAME_CATALOG.find((g) => g.id === p.game)?.name}</span>
               <strong>
@@ -2163,7 +2186,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
                   <span>{u.avatar}</span>
                   <div>
                     <strong>
-                      {u.username} {u.admin && <Verified />}
+                      <PlayerName player={u} /> {u.admin && <Verified />}
                     </strong>
                     <small>Player account</small>
                   </div>
@@ -2189,7 +2212,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
                   </button>
                   <button
                     className={"btn " + (u.banned ? "secondary" : "danger")}
-                    disabled={busy || u.admin}
+                    disabled={busy || u.protected}
                     onClick={() => {
                       if (
                         window.confirm(
@@ -2213,10 +2236,27 @@ function AdminPanel({ boot, refresh, act, notify }) {
                   id: editUser.id,
                   username: editUser.username,
                   coins: Number(editUser.coins),
+                  displayRole: editUser.displayRole || "gamer",
                 });
               }}
             >
               <h3>Edit player #{editUser.id}</h3>
+              <label>
+                Display role
+                <select
+                  value={editUser.displayRole || "gamer"}
+                  onChange={(e) =>
+                    setEditUser({ ...editUser, displayRole: e.target.value })
+                  }
+                >
+                  {DISPLAY_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               <label>
                 Username
                 <input

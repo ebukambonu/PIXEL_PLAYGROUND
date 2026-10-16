@@ -5,6 +5,7 @@ import {
   createHash,
 } from "node:crypto";
 import nodemailer from "nodemailer";
+import { DISPLAY_ROLES } from "./roles.js";
 import { ensureSchema } from "./schema.js";
 export const ADMINS = new Set(["somkene", "kamneto"]);
 export const ITEMS = [
@@ -172,19 +173,27 @@ export async function createBackend(db) {
       .prepare("INSERT OR IGNORE INTO settings VALUES (?,?)")
       .run(key, JSON.stringify(value));
   const sha = (value) => createHash("sha256").update(value).digest("hex");
-  const isAdmin = (user) => Boolean(user && user.role === "admin");
+  const isAdmin = (user) =>
+    Boolean(
+      user &&
+      (user.role === "admin" ||
+        ["admin", "dev", "owner"].includes(user.display_role)),
+    );
   const safeUser = async (user) =>
     user
       ? {
           id: user.id,
           email: user.email,
           username: user.username,
+          displayRole:
+            user.role === "admin" ? "owner" : user.display_role || "gamer",
           verified: Boolean(user.verified),
           banned: Boolean(user.banned),
           coins: user.coins,
           avatar: user.avatar,
           theme: user.theme,
           admin: isAdmin(user),
+          protected: user.role === "admin",
           inventory: (
             await db
               .prepare("SELECT item_id FROM inventory WHERE user_id=?")
@@ -570,14 +579,16 @@ export async function createBackend(db) {
         messages: (
           await db
             .prepare(
-              `SELECT messages.id,content,messages.created,users.username,users.avatar,users.verified,users.email,users.role FROM messages JOIN users ON user_id=users.id WHERE room_id=? ORDER BY messages.id DESC LIMIT 80`,
+              `SELECT messages.id,content,messages.created,users.username,users.avatar,users.verified,users.email,users.role,users.display_role FROM messages JOIN users ON user_id=users.id WHERE room_id=? ORDER BY messages.id DESC LIMIT 80`,
             )
             .all(room)
         )
           .reverse()
           .map(({ email, ...m }) => ({
             ...m,
-            admin: isAdmin({ role: m.role }),
+            admin: isAdmin(m),
+            displayRole:
+              m.role === "admin" ? "owner" : m.display_role || "gamer",
           })),
       };
     }
@@ -714,7 +725,7 @@ export async function createBackend(db) {
       return {
         players: await db
           .prepare(
-            `SELECT users.id,username,avatar,MAX(score) AS score,game FROM scores JOIN users ON user_id=users.id WHERE banned=0 GROUP BY users.id,game ORDER BY score DESC LIMIT 20`,
+            `SELECT users.id,username,avatar,users.role,users.display_role,MAX(score) AS score,game FROM scores JOIN users ON user_id=users.id WHERE banned=0 GROUP BY users.id,game ORDER BY score DESC LIMIT 20`,
           )
           .all(),
       };
@@ -739,6 +750,10 @@ export async function createBackend(db) {
           "sudoku",
           "hangman",
           "fifteen-puzzle",
+          "tower-defense",
+          "dungeon-crawl",
+          "starfighter",
+          "gem-quest",
         ].includes(b.game) ||
         !Number.isInteger(b.score) ||
         b.score < 0 ||
@@ -850,7 +865,8 @@ export async function createBackend(db) {
           .get(Number(b.id));
         if (!target) fail("User not found.", 404);
         if (b.banned !== undefined) {
-          if (isAdmin(target)) fail("Owner accounts cannot be banned.");
+          if (target.role === "admin")
+            fail("Somkene and Kamneto cannot be banned.");
           if (typeof b.banned !== "boolean") fail("Invalid ban status.");
           await db
             .prepare("UPDATE users SET banned=? WHERE id=?")
@@ -859,6 +875,15 @@ export async function createBackend(db) {
             await db
               .prepare("DELETE FROM sessions WHERE user_id=?")
               .run(target.id);
+        }
+        if (b.displayRole !== undefined) {
+          if (!DISPLAY_ROLES.includes(b.displayRole))
+            fail("Invalid display role.");
+          if (target.role === "admin" && b.displayRole !== "owner")
+            fail("Founders retain the Owner role.");
+          await db
+            .prepare("UPDATE users SET display_role=? WHERE id=?")
+            .run(b.displayRole, target.id);
         }
         if (b.coins !== undefined) {
           if (!Number.isInteger(b.coins) || b.coins < 0 || b.coins > 1000000)

@@ -1,0 +1,238 @@
+.quest-game {
+  width: 100%;
+  max-width: 620px;
+  margin: auto;
+  outline: none;
+}
+.quest-game:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+.quest-stats,
+.quest-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0;
+}
+.quest-stats span {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.quest-toolbar button,
+.quest-upgrades button,
+.quest-controls button {
+  background: var(--panel2);
+  color: var(--text, #f2f1f6);
+  border: 1px solid #ffffff26;
+  border-radius: 9px;
+  padding: 10px 13px;
+  cursor: pointer;
+  min-height: 42px;
+}
+.quest-toolbar button[aria-pressed="true"],
+.quest-toolbar button:hover:not(:disabled),
+.quest-controls button:active {
+  background: #41553b;
+  color: #e3ffcf;
+}
+.quest-toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.quest-defense,
+.quest-flight {
+  width: 100%;
+  display: block;
+  border: 1px solid #ffffff22;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.quest-defense [role="button"] {
+  cursor: pointer;
+}
+.quest-defense [role="button"]:focus {
+  stroke: #dbffa9;
+  stroke-width: 3;
+  outline: none;
+}
+.quest-flight {
+  touch-action: none;
+  max-height: 65vh;
+}
+.quest-flight:focus-visible {
+  outline: 2px solid #c0f880;
+}
+.quest-help {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  text-align: center;
+  margin: 16px 0;
+}
+.quest-message {
+  min-height: 30px;
+  text-align: center;
+  font-size: 14px;
+  margin: 14px 0;
+  color: var(--accent);
+}
+.quest-dungeon {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 3px;
+  max-width: 440px;
+  margin: auto;
+  padding: 7px;
+  background: #101923;
+  border-radius: 13px;
+}
+.quest-dungeon button {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: #263441;
+  font-size: clamp(13px, 4vw, 26px);
+  color: #617387;
+  cursor: pointer;
+}
+.quest-dungeon button.fog {
+  background: #0b101b;
+}
+.quest-dungeon button.wall {
+  background: repeating-linear-gradient(
+    0deg,
+    #4b5063,
+    #4b5063 8px,
+    #32384a 9px,
+    #32384a 11px
+  );
+}
+.quest-dungeon button.hero {
+  background: #456343;
+  box-shadow: inset 0 0 0 2px #bcf598;
+}
+.quest-controls {
+  text-align: center;
+  margin: 15px;
+}
+.quest-controls > button {
+  margin-bottom: 5px;
+}
+.quest-controls div {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+}
+.quest-controls button {
+  width: 48px;
+  touch-action: manipulation;
+}
+.quest-upgrades {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel2);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+.quest-gems {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+  padding: 8px;
+  background: #141723;
+  border-radius: 14px;
+  max-width: 490px;
+  margin: 12px auto;
+}
+.quest-gems button {
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 1px solid #ffffff12;
+  border-radius: 9px;
+  font-size: clamp(15px, 4vw, 30px);
+  padding: 0;
+  cursor: pointer;
+  transition:
+    transform 0.12s,
+    background 0.12s;
+  background: #29263b;
+  touch-action: manipulation;
+}
+.quest-gems button[aria-pressed="true"] {
+  outline: 3px solid #d4fa97;
+  transform: scale(0.91);
+  background: #445537;
+}
+.quest-gems button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.quest-gems .gem-1 {
+  background: #302449;
+}
+.quest-gems .gem-2 {
+  background: #203c36;
+}
+.quest-gems .gem-3 {
+  background: #432b30;
+}
+.quest-gems .gem-4 {
+  background: #42392b;
+}
+.quest-gems .gem-5 {
+  background: #21354b;
+}
+.quest-progress {
+  width: 100%;
+  height: 10px;
+  accent-color: #ba97f2;
+}
+.illustration-citadel,
+.illustration-dungeon,
+.illustration-starfighter,
+.illustration-gems {
+  background:
+    radial-gradient(ellipse at 50% 80%, #42336c, transparent 75%), #191d30;
+}
+.art-quest {
+  font-size: 70px;
+  filter: drop-shadow(0 8px 12px #0005);
+  letter-spacing: 5px;
+}
+.mini-art .art-quest {
+  font-size: 32px;
+}
+@media (max-width: 450px) {
+  .quest-stats {
+    gap: 5px;
+  }
+  .quest-stats span {
+    font-size: 11px;
+    padding: 7px;
+  }
+  .quest-toolbar {
+    gap: 6px;
+  }
+  .quest-toolbar button {
+    font-size: 12px;
+    padding: 9px;
+  }
+  .quest-gems {
+    gap: 3px;
+    padding: 5px;
+  }
+  .quest-gems button {
+    border-radius: 6px;
+  }
+}
