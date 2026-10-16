@@ -107,7 +107,7 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     const res = await req("/bootstrap");
     assert.equal(res.status, 200);
     assert.equal(res.data.rooms.length, 3);
-    assert.equal(res.data.items.length, 22);
+    assert.equal(res.data.items.length, 154);
     assert.equal(res.data.user, null);
   });
   await t.test(
@@ -736,6 +736,218 @@ test("account, economy, moderation and ownership boundaries", async (t) => {
     );
     assert.equal((await req("/admin", "GET", null, p.cookie)).status, 403);
   });
+  await t.test(
+    "pack draws keep fixed odds, charge once, refund duplicates and award OP safely",
+    async () => {
+      const { randomUUID } = await import("node:crypto");
+      const player = await req("/register", "POST", {
+        username: "PackTester",
+        password: "pack tester password",
+      });
+      const base = (await req("/bootstrap")).data.settings.itemOverrides || {};
+      const guaranteed = {
+        uncommon: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mystical: 0,
+        op: 100,
+      };
+      assert.equal(
+        (
+          await req(
+            "/admin/settings",
+            "PATCH",
+            {
+              itemOverrides: { ...base, "pack-farm": { chances: guaranteed } },
+            },
+            player.cookie,
+          )
+        ).status,
+        403,
+      );
+      assert.equal(
+        (
+          await req(
+            "/admin/settings",
+            "PATCH",
+            {
+              itemOverrides: {
+                ...base,
+                "pack-farm": { chances: { ...guaranteed, op: 99 } },
+              },
+            },
+            owner,
+          )
+        ).status,
+        400,
+      );
+      assert.equal(
+        (
+          await req(
+            "/admin/settings",
+            "PATCH",
+            {
+              itemOverrides: { ...base, "pack-farm": { chances: guaranteed } },
+            },
+            owner,
+          )
+        ).status,
+        200,
+      );
+      const requestId = randomUUID();
+      const opened = await req(
+        "/packs/open",
+        "POST",
+        {
+          pack: "pack-farm",
+          requestId,
+          price: 1,
+          item: "avatar-fox",
+          rarity: "uncommon",
+        },
+        player.cookie,
+      );
+      assert.equal(opened.status, 200);
+      assert.equal(opened.data.item.rarity, "op");
+      assert.equal(opened.data.user.coins, 425);
+      assert.equal(opened.data.user.displayRole, "op");
+      assert.equal(opened.data.user.earnedOP, true);
+      assert.equal(opened.data.user.admin, false);
+      assert.equal(opened.data.duplicate, false);
+      const retry = await req(
+        "/packs/open",
+        "POST",
+        { pack: "pack-farm", requestId },
+        player.cookie,
+      );
+      assert.equal(retry.data.replayed, true);
+      assert.equal(retry.data.user.coins, 425);
+      assert.equal(retry.data.item.id, opened.data.item.id);
+      const duplicate = await req(
+        "/packs/open",
+        "POST",
+        { pack: "pack-farm", requestId: randomUUID() },
+        player.cookie,
+      );
+      assert.equal(duplicate.status, 200);
+      assert.equal(duplicate.data.duplicate, true);
+      assert.equal(duplicate.data.refund, 18);
+      assert.equal(duplicate.data.user.coins, 368);
+      assert.equal(
+        duplicate.data.user.inventory.filter((id) => id === opened.data.item.id)
+          .length,
+        1,
+      );
+      assert.equal(
+        (
+          await req(
+            "/purchase",
+            "POST",
+            { item: opened.data.item.id },
+            player.cookie,
+          )
+        ).status,
+        400,
+      );
+      const concurrentId = randomUUID();
+      const concurrent = await Promise.all(
+        [1, 2].map(() =>
+          req(
+            "/packs/open",
+            "POST",
+            { pack: "pack-farm", requestId: concurrentId },
+            player.cookie,
+          ),
+        ),
+      );
+      assert.ok(concurrent.every((r) => r.status === 200));
+      assert.equal(concurrent.filter((r) => r.data.replayed).length, 1);
+      await req(
+        "/admin/users",
+        "PATCH",
+        { id: player.data.user.id, coins: 0 },
+        owner,
+      );
+      assert.equal(
+        (
+          await req(
+            "/packs/open",
+            "POST",
+            { pack: "pack-farm", requestId: randomUUID() },
+            player.cookie,
+          )
+        ).status,
+        400,
+      );
+      const protectedOpen = await req(
+        "/packs/open",
+        "POST",
+        { pack: "pack-farm", requestId: randomUUID() },
+        owner,
+      );
+      assert.equal(protectedOpen.status, 200);
+      assert.equal(protectedOpen.data.user.admin, true);
+      assert.equal(protectedOpen.data.user.displayRole, "owner");
+      assert.equal(protectedOpen.data.user.earnedOP, true);
+      const other = await req("/register", "POST", {
+        username: "PackOther",
+        password: "another pack password",
+      });
+      assert.equal(
+        (
+          await req(
+            "/packs/open",
+            "POST",
+            { pack: "pack-farm", requestId },
+            other.cookie,
+          )
+        ).status,
+        409,
+      );
+      await req(
+        "/admin/settings",
+        "PATCH",
+        { itemOverrides: { ...base, "pack-farm": { hidden: true } } },
+        owner,
+      );
+      assert.equal(
+        (
+          await req(
+            "/packs/open",
+            "POST",
+            { pack: "pack-farm", requestId: randomUUID() },
+            other.cookie,
+          )
+        ).status,
+        404,
+      );
+      await req("/admin/settings", "PATCH", { itemOverrides: base }, owner);
+      const admin = (await req("/admin", "GET", null, owner)).data;
+      const founder = admin.users.find((u) => u.username === "Somkene");
+      assert.equal(
+        (
+          await req(
+            "/admin/users",
+            "PATCH",
+            { id: founder.id, displayRole: "supporter" },
+            owner,
+          )
+        ).status,
+        200,
+      );
+      const self = (await req("/bootstrap", "GET", null, owner)).data.user;
+      assert.equal(self.displayRole, "supporter");
+      assert.equal(self.protected, true);
+      assert.equal(self.admin, true);
+      await req(
+        "/admin/users",
+        "PATCH",
+        { id: founder.id, displayRole: "owner" },
+        owner,
+      );
+    },
+  );
   await t.test(
     "rate limits use shared database records rather than instance memory",
     async () => {

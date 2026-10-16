@@ -57,7 +57,7 @@ export function createEdgeHandler(load) {
       const raw = ["GET", "HEAD"].includes(request.method)
         ? ""
         : await request.text();
-      if (new TextEncoder().encode(raw).length > 20000)
+      if (new TextEncoder().encode(raw).length > 128000)
         return Response.json(
           { error: "Request too large." },
           { status: 413, headers: CORS },

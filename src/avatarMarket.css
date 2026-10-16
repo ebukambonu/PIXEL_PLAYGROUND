@@ -1,0 +1,634 @@
+.avatar-market {
+  margin: 30px 0 45px;
+}
+.market-title {
+  display: flex;
+  gap: 25px;
+  justify-content: space-between;
+  align-items: center;
+  background:
+    radial-gradient(ellipse at 85% 15%, #725aa133, transparent 65%),
+    var(--panel);
+  border: 1px solid var(--line);
+  padding: 26px;
+  border-radius: 18px;
+}
+.market-title h2 {
+  font:
+    600 clamp(22px, 3vw, 31px)/1.2 "Space Grotesk",
+    sans-serif;
+  max-width: 440px;
+  margin: 8px 0 12px;
+}
+.market-title p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 470px;
+}
+.collection-total {
+  flex-shrink: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.collection-total strong {
+  font:
+    600 42px "Space Grotesk",
+    sans-serif;
+  color: var(--accent);
+}
+.collection-total small {
+  font-size: 19px;
+  color: var(--muted);
+}
+.collection-total > span {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.market-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  margin: 22px 0;
+  padding-bottom: 12px;
+}
+.market-tabs button {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+  padding: 10px 18px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.market-tabs button[aria-selected="true"] {
+  color: var(--accent);
+  border-color: #c0f88030;
+  background: #c0f8800d;
+}
+.market-pack-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.market-pack {
+  text-align: left;
+  padding: 0;
+  background: var(--panel);
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.market-pack:hover {
+  transform: translateY(-4px);
+  border-color: var(--pack-color);
+  box-shadow: 0 12px 35px #0003;
+}
+.market-pack:focus-visible {
+  outline: 3px solid var(--pack-color);
+  outline-offset: 3px;
+}
+.pack-art {
+  height: 170px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      ellipse at 50% 55%,
+      color-mix(in srgb, var(--pack-color), transparent 60%),
+      transparent 70%
+    ),
+    linear-gradient(130deg, #25232f, #151820);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.pack-symbol {
+  font-size: 65px;
+  transform: rotate(-8deg);
+  filter: drop-shadow(0 12px 10px #0005);
+  transition: transform 0.2s;
+}
+.market-pack:hover .pack-symbol {
+  transform: rotate(5deg) scale(1.1);
+}
+.pack-orbit {
+  position: absolute;
+  width: 125px;
+  height: 125px;
+  border: 1px solid color-mix(in srgb, var(--pack-color), transparent 60%);
+  border-radius: 24px;
+  z-index: -1;
+  transform: rotate(30deg);
+}
+.orbit-two {
+  transform: rotate(-15deg);
+  width: 155px;
+  height: 155px;
+  border-style: dashed;
+  opacity: 0.5;
+}
+.pack-seal {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  color: var(--pack-color);
+  background: #10101888;
+  border: 1px solid #ffffff12;
+}
+.pack-label {
+  padding: 17px;
+}
+.pack-label h3 {
+  font:
+    600 17px "Space Grotesk",
+    sans-serif;
+  margin: 0 0 7px;
+}
+.pack-label p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  min-height: 35px;
+  margin: 0 0 14px;
+}
+.pack-label > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.pack-label > div > span:last-child {
+  color: var(--muted);
+  font-size: 10px;
+}
+.pack-price {
+  font-weight: 700;
+  color: var(--pack-color);
+  font-size: 14px;
+}
+.pack-label progress {
+  width: 100%;
+  height: 4px;
+  display: block;
+  margin-top: 14px;
+  accent-color: var(--pack-color);
+}
+.market-note,
+.market-empty {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  text-align: center;
+  margin: 20px 0;
+}
+.collection-filters {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.collection-filters label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.collection-filters select {
+  background: var(--panel2);
+  color: inherit;
+  border: 1px solid var(--line);
+  padding: 9px;
+  border-radius: 7px;
+}
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.collection-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 1px solid color-mix(in srgb, var(--rarity), transparent 65%);
+  border-radius: 12px;
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      color-mix(in srgb, var(--rarity), transparent 93%),
+      transparent
+    ),
+    var(--panel2);
+  padding: 13px 9px;
+  min-width: 0;
+}
+.rarity-tag {
+  font-size: 8px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--rarity);
+  border: 1px solid color-mix(in srgb, var(--rarity), transparent 70%);
+  padding: 4px 7px;
+  border-radius: 5px;
+}
+.collection-character {
+  font-size: 40px;
+  margin: 16px 0 10px;
+  line-height: 1.2;
+}
+.collection-avatar.locked .collection-character {
+  filter: grayscale(0.75);
+  opacity: 0.6;
+}
+.collection-avatar h4 {
+  font-size: 11px;
+  margin: 2px 0 7px;
+  color: var(--rarity);
+  line-height: 1.5;
+}
+.collection-avatar small {
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.collection-avatar .btn {
+  font-size: 10px;
+  min-height: 30px;
+  padding: 6px 12px;
+  margin-top: auto;
+}
+.avatar-lock {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: auto;
+}
+.pack-overlay {
+  position: fixed;
+  inset: 0;
+  background: #080910dd;
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 200;
+  overflow-y: auto;
+}
+.pack-dialog {
+  position: relative;
+  max-width: 760px;
+  width: 100%;
+  max-height: 90dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 28px;
+  border: 1px solid #ffffff20;
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: 0 30px 100px #0008;
+  outline: none;
+}
+.pack-close {
+  position: absolute;
+  right: 13px;
+  top: 10px;
+  width: 32px;
+  height: 32px;
+  background: #ffffff08;
+  color: var(--muted);
+  border: 0;
+  border-radius: 8px;
+  font-size: 25px;
+  cursor: pointer;
+}
+.pack-dialog header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 10px 22px 20px 0;
+}
+.pack-heading-icon {
+  font-size: 55px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--pack-color), transparent 70%),
+    transparent
+  );
+  padding: 10px;
+}
+.pack-dialog header h2 {
+  font:
+    600 26px "Space Grotesk",
+    sans-serif;
+  margin: 6px 0;
+}
+.pack-dialog header p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.pack-dialog .eyebrow {
+  color: var(--pack-color);
+}
+.pack-buy {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  margin: 20px 0;
+}
+.pack-buy strong {
+  display: block;
+  font-size: 16px;
+  color: var(--pack-color);
+}
+.pack-buy small {
+  font-size: 11px;
+  color: var(--muted);
+  display: block;
+  margin-top: 7px;
+}
+.pack-buy button {
+  min-width: 140px;
+}
+.pack-odds {
+  padding: 15px 0;
+}
+.pack-odds h3,
+.pack-contents-title {
+  font-size: 14px;
+  margin: 0 0 10px;
+}
+.pack-odds p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.pack-odds > div {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin: 15px 0;
+}
+.pack-odds > div > span {
+  font-size: 10px;
+  background: var(--panel2);
+  padding: 10px 4px;
+  border-radius: 7px;
+  text-align: center;
+}
+.pack-odds strong {
+  display: block;
+  font-size: 14px;
+  margin-top: 7px;
+}
+.pack-reveal,
+.pack-opening {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 25px 15px;
+  border-radius: 15px;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--rarity, #b8a1ff), transparent 88%),
+    transparent
+  );
+}
+.revealed-character {
+  font-size: 90px;
+  line-height: 1.2;
+  margin: 22px 0;
+  filter: drop-shadow(
+    0 0 25px color-mix(in srgb, var(--rarity), transparent 50%)
+  );
+  animation: avatar-reveal 0.55s ease-out;
+}
+.pack-reveal h3 {
+  color: var(--rarity);
+  margin: 0;
+  font:
+    600 24px "Space Grotesk",
+    sans-serif;
+}
+.pack-reveal p,
+.pack-opening p {
+  font-size: 12px;
+  color: var(--muted);
+}
+.pack-reveal .btn {
+  margin-top: 7px;
+}
+.pack-opening > span {
+  font-size: 80px;
+  animation: pack-wiggle 0.65s ease-in-out infinite alternate;
+}
+.market-error {
+  font-size: 12px;
+  color: #ffaaa7;
+  line-height: 1.7;
+}
+@keyframes avatar-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-15deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes pack-wiggle {
+  from {
+    transform: rotate(-9deg) scale(0.9);
+  }
+  to {
+    transform: rotate(9deg) scale(1.05);
+  }
+}
+@media (max-width: 1000px) {
+  .market-pack-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 550px) {
+  .market-title {
+    padding: 18px;
+    gap: 10px;
+  }
+  .market-title h2 {
+    font-size: 23px;
+  }
+  .market-title p {
+    font-size: 11px;
+  }
+  .collection-total strong {
+    font-size: 30px;
+  }
+  .collection-total > span {
+    font-size: 7px;
+    max-width: 75px;
+    line-height: 1.6;
+  }
+  .market-pack-grid {
+    gap: 12px;
+  }
+  .pack-art {
+    height: 125px;
+  }
+  .pack-symbol {
+    font-size: 50px;
+  }
+  .pack-label {
+    padding: 13px;
+  }
+  .pack-label h3 {
+    font-size: 14px;
+  }
+  .pack-label p {
+    font-size: 10px;
+    min-height: 45px;
+  }
+  .pack-label > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pack-seal {
+    font-size: 6px;
+    top: 7px;
+    right: 7px;
+  }
+  .collection-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .collection-avatar {
+    padding: 11px 6px;
+  }
+  .collection-character {
+    font-size: 32px;
+  }
+  .collection-avatar h4 {
+    font-size: 10px;
+  }
+  .pack-overlay {
+    padding: 8px;
+  }
+  .pack-dialog {
+    padding: 18px 12px;
+    max-height: 95dvh;
+  }
+  .pack-dialog header {
+    gap: 8px;
+  }
+  .pack-dialog header h2 {
+    font-size: 21px;
+  }
+  .pack-heading-icon {
+    font-size: 40px;
+    padding: 7px;
+  }
+  .pack-buy {
+    padding: 12px;
+    gap: 8px;
+  }
+  .pack-buy strong {
+    font-size: 14px;
+  }
+  .pack-buy .btn {
+    min-width: 110px;
+    font-size: 11px;
+    padding: 11px;
+  }
+  .pack-odds > div {
+    gap: 4px;
+  }
+  .pack-odds > div > span {
+    font-size: 8px;
+    padding: 10px 2px;
+  }
+  .pack-odds strong {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pack-opening > span,
+  .revealed-character {
+    animation: none;
+  }
+  .market-pack,
+  .pack-symbol {
+    transition: none;
+  }
+}
+.pack-chance-editor {
+  display: grid;
+  gap: 15px;
+  margin: 20px 0;
+}
+.pack-chance-editor fieldset {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+}
+.pack-chance-editor legend {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 8px;
+}
+.pack-chance-editor fieldset > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.pack-chance-editor label {
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  gap: 6px;
+}
+.pack-chance-editor label span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pack-chance-editor input {
+  min-width: 0;
+  width: 100%;
+  max-width: 100px;
+}
+.pack-chance-editor small {
+  display: block;
+  font-size: 11px;
+  margin-top: 14px;
+}
+@media (max-width: 450px) {
+  .pack-chance-editor fieldset > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pack-odds > div {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

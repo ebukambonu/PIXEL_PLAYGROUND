@@ -13,22 +13,39 @@ export const MIGRATION_TABLES = [
   "scores",
   "audit",
   "rate_limits",
+  "pack_openings",
 ];
 
 export function normalizeMigrationUsers(users) {
   const result = users.map((user) => ({ ...user }));
   for (const user of result) {
     if (user.role === undefined) {
-      user.role = user.email === "somkene.ebukambonu@millburnacademy.org.uk" ||
-        (user.email === "kamneto.ebukambonu@millburnacademy.org.uk" && user.verified)
-        ? "admin" : "player";
+      user.role =
+        user.email === "somkene.ebukambonu@millburnacademy.org.uk" ||
+        (user.email === "kamneto.ebukambonu@millburnacademy.org.uk" &&
+          user.verified)
+          ? "admin"
+          : "player";
     }
-    const desired = user.role === "admin" && user.email === "somkene.ebukambonu@millburnacademy.org.uk"
-      ? "Somkene" : user.role === "admin" && user.email === "kamneto.ebukambonu@millburnacademy.org.uk"
-        ? "Kamneto" : null;
+    const desired =
+      user.role === "admin" &&
+      user.email === "somkene.ebukambonu@millburnacademy.org.uk"
+        ? "Somkene"
+        : user.role === "admin" &&
+            user.email === "kamneto.ebukambonu@millburnacademy.org.uk"
+          ? "Kamneto"
+          : null;
     if (desired) {
-      if (result.some((other) => other.id !== user.id && other.username.toLowerCase() === desired.toLowerCase()))
-        throw new Error("Reserved admin name conflicts with an existing player; migration stopped.");
+      if (
+        result.some(
+          (other) =>
+            other.id !== user.id &&
+            other.username.toLowerCase() === desired.toLowerCase(),
+        )
+      )
+        throw new Error(
+          "Reserved admin name conflicts with an existing player; migration stopped.",
+        );
       user.username = desired;
     }
   }
@@ -43,7 +60,16 @@ export async function migrateToSupabase(source, target, saveBackup) {
   const snapshot = await source.transaction(async () => {
     const data = {};
     for (const table of MIGRATION_TABLES)
-      data[table] = await source.prepare(`SELECT * FROM ${table}`).all();
+      try {
+        data[table] = await source.prepare(`SELECT * FROM ${table}`).all();
+      } catch (error) {
+        if (
+          table === "pack_openings" &&
+          /no such table|does not exist/.test(error.message)
+        )
+          data[table] = [];
+        else throw error;
+      }
     return data;
   });
   await saveBackup(snapshot);

@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { GAME_CATALOG, GamePlayer } from "./games";
 import { DISPLAY_ROLES, ROLE_LABELS, displayRole } from "./roles.js";
+import AvatarMarket, { PackChanceEditor } from "./AvatarMarket";
 import { APP_CATALOG, AppPlayer } from "./apps";
 import "./styles.css";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -98,6 +99,11 @@ function PlayerName({ player }) {
     <span className={"player-name role-" + role}>
       <span className="role-name">{player.username}</span>
       <span className="role-badge">{ROLE_LABELS[role]}</span>
+      {(player.earnedOP || player.earned_op) && role !== "op" && (
+        <span className="role-badge earned-op" title="Unlocked an OP avatar">
+          OP
+        </span>
+      )}
     </span>
   );
 }
@@ -1040,113 +1046,127 @@ function App() {
                   {!settings.shopEnabled && !user?.admin ? (
                     <Empty text="The shop is taking a short break. Check back soon." />
                   ) : (
-                    ["theme", "avatar"].map((type) => (
-                      <section key={type} className="shop-section">
-                        <div className="section-heading">
-                          <h2>
-                            {type === "theme"
-                              ? "Set the mood"
-                              : "Meet your new alter ego"}
-                          </h2>
-                          <span>{type === "theme" ? "THEMES" : "AVATARS"}</span>
-                        </div>
-                        <div className="shop-grid">
-                          {items
-                            .filter(
-                              (i) =>
-                                i.type === type &&
-                                !i.hidden &&
-                                (i.name + " " + i.description)
-                                  .toLowerCase()
-                                  .includes(search.toLowerCase()),
-                            )
-                            .map((item) => {
-                              const owned = user?.inventory.includes(item.id),
-                                equipped = user?.[item.type] === item.value;
-                              return (
-                                <div className="shop-item" key={item.id}>
-                                  <div
-                                    className={
-                                      "shop-preview " +
-                                      (type === "theme"
-                                        ? "theme-preview"
-                                        : "avatar-preview")
-                                    }
-                                    style={{
-                                      "--item-color": item.color || "#c6a5fa",
-                                    }}
-                                  >
-                                    {type === "theme" ? (
-                                      <div className="theme-window">
-                                        <div>
-                                          <i />
-                                          <i />
-                                          <i />
-                                        </div>
-                                        <section>
-                                          <aside />
-                                          <article>
-                                            <span />
-                                            <div>
-                                              <i />
-                                              <i />
-                                              <i />
-                                            </div>
-                                          </article>
-                                        </section>
-                                      </div>
-                                    ) : (
-                                      <span>{item.value}</span>
-                                    )}
-                                    {equipped && (
-                                      <small>
-                                        <Check size={12} />
-                                        EQUIPPED
-                                      </small>
-                                    )}
-                                  </div>
-                                  <h3>{item.name}</h3>
-                                  <p>{item.description}</p>
-                                  <div className="shop-item-bottom">
-                                    <span>
-                                      <Coins size={16} />
-                                      {owned ? "Owned" : item.price}
-                                    </span>
-                                    <button
+                    <>
+                      <AvatarMarket
+                        items={items}
+                        user={user}
+                        act={act}
+                        onLogin={() => setAuth("register")}
+                        search={search}
+                      />
+                      {["theme", "avatar"].map((type) => (
+                        <section key={type} className="shop-section">
+                          <div className="section-heading">
+                            <h2>
+                              {type === "theme"
+                                ? "Set the mood"
+                                : "Meet your new alter ego"}
+                            </h2>
+                            <span>
+                              {type === "theme" ? "THEMES" : "AVATARS"}
+                            </span>
+                          </div>
+                          <div className="shop-grid">
+                            {items
+                              .filter(
+                                (i) =>
+                                  i.type === type &&
+                                  !i.packId &&
+                                  !i.hidden &&
+                                  (i.name + " " + i.description)
+                                    .toLowerCase()
+                                    .includes(search.toLowerCase()),
+                              )
+                              .map((item) => {
+                                const owned = user?.inventory.includes(item.id),
+                                  equipped = user?.[item.type] === item.value;
+                                return (
+                                  <div className="shop-item" key={item.id}>
+                                    <div
                                       className={
-                                        "btn " +
-                                        (equipped ? "secondary" : "primary")
+                                        "shop-preview " +
+                                        (type === "theme"
+                                          ? "theme-preview"
+                                          : "avatar-preview")
                                       }
-                                      disabled={equipped}
-                                      onClick={() => {
-                                        if (!user) {
-                                          setAuth("register");
-                                          return;
-                                        }
-                                        act(
-                                          owned ? "/profile" : "/purchase",
-                                          owned ? "PATCH" : "POST",
-                                          { item: item.id },
-                                          owned
-                                            ? "Your new look is on!"
-                                            : "Added to your collection!",
-                                        );
+                                      style={{
+                                        "--item-color": item.color || "#c6a5fa",
                                       }}
                                     >
-                                      {equipped
-                                        ? "Equipped"
-                                        : owned
-                                          ? "Equip"
-                                          : "Get it"}
-                                      {!equipped && <ArrowUpRight size={13} />}
-                                    </button>
+                                      {type === "theme" ? (
+                                        <div className="theme-window">
+                                          <div>
+                                            <i />
+                                            <i />
+                                            <i />
+                                          </div>
+                                          <section>
+                                            <aside />
+                                            <article>
+                                              <span />
+                                              <div>
+                                                <i />
+                                                <i />
+                                                <i />
+                                              </div>
+                                            </article>
+                                          </section>
+                                        </div>
+                                      ) : (
+                                        <span>{item.value}</span>
+                                      )}
+                                      {equipped && (
+                                        <small>
+                                          <Check size={12} />
+                                          EQUIPPED
+                                        </small>
+                                      )}
+                                    </div>
+                                    <h3>{item.name}</h3>
+                                    <p>{item.description}</p>
+                                    <div className="shop-item-bottom">
+                                      <span>
+                                        <Coins size={16} />
+                                        {owned ? "Owned" : item.price}
+                                      </span>
+                                      <button
+                                        className={
+                                          "btn " +
+                                          (equipped ? "secondary" : "primary")
+                                        }
+                                        disabled={equipped}
+                                        onClick={() => {
+                                          if (!user) {
+                                            setAuth("register");
+                                            return;
+                                          }
+                                          act(
+                                            owned ? "/profile" : "/purchase",
+                                            owned ? "PATCH" : "POST",
+                                            { item: item.id },
+                                            owned
+                                              ? "Your new look is on!"
+                                              : "Added to your collection!",
+                                          );
+                                        }}
+                                      >
+                                        {equipped
+                                          ? "Equipped"
+                                          : owned
+                                            ? "Equip"
+                                            : "Get it"}
+                                        {!equipped && (
+                                          <ArrowUpRight size={13} />
+                                        )}
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </section>
-                    ))
+                                );
+                              })}
+                          </div>
+                        </section>
+                      ))}
+                    </>
                   )}
                 </>
               )}
@@ -2194,7 +2214,7 @@ function AdminPanel({ boot, refresh, act, notify }) {
                     {u.banned
                       ? "Banned"
                       : u.admin
-                        ? "Owner"
+                        ? "Administrator"
                         : u.verified
                           ? "Verified"
                           : "Player"}
@@ -2375,6 +2395,13 @@ function AdminPanel({ boot, refresh, act, notify }) {
               <Check size={14} />
             </button>
           </section>
+          <PackChanceEditor
+            items={boot.items}
+            settings={settings}
+            setSettings={setSettings}
+            save={save}
+            busy={busy}
+          />
           <section className="admin-card">
             <h2>Shop catalog</h2>
             <p>

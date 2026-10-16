@@ -17,7 +17,6 @@ export const ROLE_LABELS = {
   op: "OP",
 };
 export function displayRole(user) {
-  if (user?.protected || user?.role === "admin") return "owner";
   const role = user?.displayRole ?? user?.display_role;
   return DISPLAY_ROLES.includes(role)
     ? role

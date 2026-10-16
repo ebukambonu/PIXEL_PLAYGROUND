@@ -1,11 +1,21 @@
-import {randomBytes,createHash} from "node:crypto";
-import {Buffer} from "node:buffer";
-import {passwordHash,passwordMatches} from "./passwords.js";
+import { randomBytes, createHash, randomInt } from "node:crypto";
+import { Buffer } from "node:buffer";
+import { passwordHash, passwordMatches } from "./passwords.js";
 import nodemailer from "nodemailer";
 import { DISPLAY_ROLES } from "./roles.js";
 import { ensureSchema } from "./schema.js";
 export const ADMINS = new Set(["somkene", "kamneto"]);
+import {
+  PACKS,
+  PACK_AVATARS,
+  eligiblePackItems,
+  choosePackRarity,
+  packReady,
+  validPackChances,
+} from "./avatarPacks.js";
 export const ITEMS = [
+  ...PACKS,
+  ...PACK_AVATARS,
   ...[
     ["forest", "Forest arcade", 450, "#91d8a1", "A quiet woodland escape."],
     [
@@ -183,7 +193,7 @@ export async function createBackend(db) {
           email: user.email,
           username: user.username,
           displayRole:
-            user.role === "admin" ? "owner" : user.display_role || "gamer",
+            user.display_role || (user.role === "admin" ? "owner" : "gamer"),
           verified: Boolean(user.verified),
           banned: Boolean(user.banned),
           coins: user.coins,
@@ -191,6 +201,7 @@ export async function createBackend(db) {
           theme: user.theme,
           admin: isAdmin(user),
           protected: user.role === "admin",
+          earnedOP: Boolean(user.earned_op),
           inventory: (
             await db
               .prepare("SELECT item_id FROM inventory WHERE user_id=?")
@@ -378,7 +389,7 @@ export async function createBackend(db) {
     if (req.body !== undefined) {
       const raw =
         typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-      if (Buffer.byteLength(raw) > 20000) fail("Request too large.", 413);
+      if (Buffer.byteLength(raw) > 128000) fail("Request too large.", 413);
       try {
         return raw ? JSON.parse(raw) : {};
       } catch {
@@ -388,7 +399,7 @@ export async function createBackend(db) {
     let raw = "";
     for await (const chunk of req) {
       raw += chunk;
-      if (raw.length > 20000) fail("Request too large.", 413);
+      if (raw.length > 128000) fail("Request too large.", 413);
     }
     try {
       return raw ? JSON.parse(raw) : {};
@@ -458,13 +469,14 @@ export async function createBackend(db) {
         fail("That email or username is already registered.", 409);
       const result = await db
         .prepare(
-          "INSERT INTO users(email,username,password,role) VALUES (?,?,?,?)",
+          "INSERT INTO users(email,username,password,role,display_role) VALUES (?,?,?,?,?)",
         )
         .run(
           email,
           username,
           passwordHash(password),
           reserved ? "admin" : "player",
+          reserved ? "owner" : "gamer",
         );
       const created = await db
         .prepare("SELECT * FROM users WHERE id=?")
@@ -565,7 +577,7 @@ export async function createBackend(db) {
         messages: (
           await db
             .prepare(
-              `SELECT messages.id,content,messages.created,users.username,users.avatar,users.verified,users.email,users.role,users.display_role FROM messages JOIN users ON user_id=users.id WHERE room_id=? ORDER BY messages.id DESC LIMIT 80`,
+              `SELECT messages.id,content,messages.created,users.username,users.avatar,users.verified,users.email,users.role,users.display_role,users.earned_op FROM messages JOIN users ON user_id=users.id WHERE room_id=? ORDER BY messages.id DESC LIMIT 80`,
             )
             .all(room)
         )
@@ -573,8 +585,9 @@ export async function createBackend(db) {
           .map(({ email, ...m }) => ({
             ...m,
             admin: isAdmin(m),
+            earnedOP: Boolean(m.earned_op),
             displayRole:
-              m.role === "admin" ? "owner" : m.display_role || "gamer",
+              m.display_role || (m.role === "admin" ? "owner" : "gamer"),
           })),
       };
     }
@@ -621,6 +634,88 @@ export async function createBackend(db) {
         message: "100 daily coins collected!",
       };
     }
+    if (p === "/api/packs/open" && method === "POST") {
+      requireUser(user);
+      if (!settings.shopEnabled && !isAdmin(user))
+        fail("The shop is temporarily closed.", 403);
+      const b = await body(req);
+      if (
+        typeof b.requestId !== "string" ||
+        !/^[a-f0-9-]{36}$/.test(b.requestId)
+      )
+        fail("Invalid opening request.");
+      const catalog = await getItems(),
+        pack = catalog.find((i) => i.id === b.pack && i.type === "pack");
+      if (!pack) fail("Pack not found.", 404);
+      await rate("pack:" + user.id, 30, 60000);
+      const opened = await db.transaction(async () => {
+        const previous = await db
+          .prepare("SELECT * FROM pack_openings WHERE request_id=?")
+          .get(b.requestId);
+        if (previous) {
+          if (previous.user_id !== user.id || previous.pack_id !== pack.id)
+            fail("Opening request already used.", 409);
+          return {
+            item: catalog.find((i) => i.id === previous.item_id),
+            cost: previous.cost,
+            duplicate: Boolean(previous.duplicate),
+            refund: previous.refund,
+            replayed: true,
+          };
+        }
+        if (pack.hidden) fail("This pack is unavailable.", 404);
+        const available = eligiblePackItems(pack.id, catalog);
+        if (!packReady(available, pack.chances))
+          fail("This pack is unavailable while its contents are updated.");
+        const debit = await db
+          .prepare("UPDATE users SET coins=coins-? WHERE id=? AND coins>=?")
+          .run(pack.price, user.id, pack.price);
+        if (!debit.changes)
+          fail("Not enough coins. Collect your daily reward!");
+        const rarity = choosePackRarity(pack.chances, randomInt(10000));
+        const pool = available.filter((i) => i.rarity === rarity),
+          item = pool[randomInt(pool.length)];
+        const added = await db
+          .prepare("INSERT OR IGNORE INTO inventory VALUES (?,?)")
+          .run(user.id, item.id);
+        const duplicate = !added.changes,
+          refund = duplicate ? Math.floor(pack.price * 0.25) : 0;
+        if (refund)
+          await db
+            .prepare("UPDATE users SET coins=coins+? WHERE id=?")
+            .run(refund, user.id);
+        await db
+          .prepare("INSERT INTO purchases(user_id,item_id,cost) VALUES (?,?,?)")
+          .run(user.id, item.id, pack.price - refund);
+        await db
+          .prepare(
+            "INSERT INTO pack_openings(request_id,user_id,pack_id,item_id,cost,duplicate,refund) VALUES (?,?,?,?,?,?,?)",
+          )
+          .run(
+            b.requestId,
+            user.id,
+            pack.id,
+            item.id,
+            pack.price,
+            duplicate ? 1 : 0,
+            refund,
+          );
+        if (item.rarity === "op")
+          await db
+            .prepare(
+              "UPDATE users SET earned_op=1,display_role=CASE WHEN role='admin' OR display_role IN ('admin','dev','owner') THEN display_role ELSE 'op' END WHERE id=?",
+            )
+            .run(user.id);
+        return { item, cost: pack.price, duplicate, refund, replayed: false };
+      });
+      return {
+        ...opened,
+        pack,
+        user: await safeUser(
+          await db.prepare("SELECT * FROM users WHERE id=?").get(user.id),
+        ),
+      };
+    }
     if (p === "/api/purchase" && method === "POST") {
       requireUser(user);
       if (!settings.shopEnabled && !isAdmin(user))
@@ -628,6 +723,8 @@ export async function createBackend(db) {
       const b = await body(req);
       const item = (await getItems()).find((x) => x.id === b.item);
       if (!item || item.hidden) fail("Item not found.", 404);
+      if (item.type === "pack" || item.packId)
+        fail("Open this avatar’s pack in the market.");
       if (
         await db
           .prepare("SELECT 1 FROM inventory WHERE user_id=? AND item_id=?")
@@ -711,7 +808,7 @@ export async function createBackend(db) {
       return {
         players: await db
           .prepare(
-            `SELECT users.id,username,avatar,users.role,users.display_role,MAX(score) AS score,game FROM scores JOIN users ON user_id=users.id WHERE banned=0 GROUP BY users.id,game ORDER BY score DESC LIMIT 20`,
+            `SELECT users.id,username,avatar,users.role,users.display_role,users.earned_op,MAX(score) AS score,game FROM scores JOIN users ON user_id=users.id WHERE banned=0 GROUP BY users.id,game ORDER BY score DESC LIMIT 20`,
           )
           .all(),
       };
@@ -811,7 +908,7 @@ export async function createBackend(db) {
               !value ||
               typeof value !== "object" ||
               Array.isArray(value) ||
-              Object.keys(value).length > 50
+              Object.keys(value).length > (key === "itemOverrides" ? 200 : 50)
             )
               fail("Invalid catalog overrides.");
             for (const [id, entry] of Object.entries(value)) {
@@ -829,12 +926,34 @@ export async function createBackend(db) {
                 } else if (field === "price" && key === "itemOverrides") {
                   if (!Number.isInteger(v) || v < 0 || v > 100000)
                     fail("Invalid price.");
+                } else if (field === "chances" && key === "itemOverrides") {
+                  if (!PACKS.some((p) => p.id === id) || !validPackChances(v))
+                    fail(
+                      "Pack chances must include all six rarities, total 100%, and use at most two decimal places.",
+                    );
                 } else if (field === "hidden" && key === "itemOverrides") {
                   if (typeof v !== "boolean") fail("Invalid visibility.");
                 } else fail("Unsupported catalog field.");
               }
             }
           } else fail("Unknown setting.");
+        }
+        if (b.itemOverrides) {
+          const prospective = ITEMS.map((i) => ({
+            ...i,
+            ...b.itemOverrides[i.id],
+          }));
+          for (const pack of prospective.filter(
+            (i) => i.type === "pack" && !i.hidden,
+          ))
+            if (
+              !packReady(eligiblePackItems(pack.id, prospective), pack.chances)
+            )
+              fail(
+                "Every rarity with a positive chance needs a visible avatar in " +
+                  pack.name +
+                  ".",
+              );
         }
         for (const [key, value] of Object.entries(b))
           await db
@@ -865,8 +984,12 @@ export async function createBackend(db) {
         if (b.displayRole !== undefined) {
           if (!DISPLAY_ROLES.includes(b.displayRole))
             fail("Invalid display role.");
-          if (target.role === "admin" && b.displayRole !== "owner")
-            fail("Founders retain the Owner role.");
+          if (
+            target.role === "admin" &&
+            user.role !== "admin" &&
+            user.display_role !== "owner"
+          )
+            fail("Only an Owner can change a founder’s displayed role.", 403);
           await db
             .prepare("UPDATE users SET display_role=? WHERE id=?")
             .run(b.displayRole, target.id);

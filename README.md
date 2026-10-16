@@ -1,6 +1,6 @@
 # Pixel Playground
 
-An arcade and community website with 15 playable games, 8 utility apps, persistent accounts, shared chat, a 22-item play-coin shop, and owner administration. The design includes a responsive dark dashboard and unlockable themes.
+An arcade and community website with 19 playable games, 8 utility apps, persistent accounts, shared chat, a play-coin market with 12 avatar packs, 134 avatars and 8 themes, and owner administration. The design includes a responsive dark dashboard and unlockable themes.
 
 ## Google Sites and Supabase
 
@@ -40,8 +40,8 @@ The migration tool preserves existing users, password hashes and privileges. Leg
 - Apps: calculator with parentheses and percentages, world clock, stopwatch with laps, countdown timer, browser notes, unit converter, dice roller, and Pomodoro focus timer.
 - Accounts: scrypt password hashes, HttpOnly sessions, username login, welcome coins, and once-per-day coin claims.
 - Chat: shared global room, owner-managed chat rooms, message deletion, room clearing, and server-enforced bans. Messages refresh every 2.5 seconds; settings and room changes refresh every 15 seconds.
-- Shop: 8 themes and 14 avatars, server-authoritative pricing, inventory, and equip controls. New themes include Forest, Neon, Arctic and Gold; new avatars include an owl, penguin, frog, alien, wizard, octopus, tiger and firebird. Owners can edit every item's name, description, price and availability. Coins have no cash value; no real-money payment gateway is included.
-- Roles: admins can assign Gamer, Supporter, Dev, Admin, OG, Owner and OP through the player editor. Each has a name colour and badge; Owner has an animated rainbow name (static with reduced-motion preferences). Admin, Dev and Owner can access the admin panel and grant roles. Somkene and Kamneto retain protected founder permissions and cannot be banned. Other roles do not grant admin access.
+- Shop: 12 themed packs add 120 new avatars, alongside the original 14 avatars and 8 themes. Pack rarities are Uncommon, Rare, Epic, Legendary, Mystical and OP. Each opening uses independent, fixed server-side odds (defaults 60%, 25%, 10%, 4%, 0.9%, 0.1%); owning avatars never boosts the odds. Duplicate draws refund 25% of the current pack price, rounded down. A persistent request ID prevents retries from charging twice. OP avatars grant the OP role automatically; privileged accounts retain their permissions and gain an OP badge. The admin panel edits per-pack percentages (must total 100%), prices and visibility. Existing avatars and inventories are preserved. Other shop features include server-authoritative pricing, inventory, and equip controls. New themes include Forest, Neon, Arctic and Gold; new avatars include an owl, penguin, frog, alien, wizard, octopus, tiger and firebird. Owners can edit every item's name, description, price and availability. Coins have no cash value; no real-money payment gateway is included.
+- Roles: admins can assign Gamer, Supporter, Dev, Admin, OG, Owner and OP through the player editor. Each has a name colour and badge; Owner has an animated rainbow name (static with reduced-motion preferences). Admin, Dev and Owner can access the admin panel and grant roles. Owners may change any player’s displayed role, including other Owners and founders. Somkene and Kamneto retain protected founder permissions and cannot be banned even after their displayed role changes. Other roles do not grant admin access.
 - Admin: player bans/unbans, balances and usernames, global announcements, site text, game visibility and copy, shop availability and prices, room create/edit/delete, maintenance mode, chat pause, shop pause, and an action log.
 
 ### Owner commands
