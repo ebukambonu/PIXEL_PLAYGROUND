@@ -1,9 +1,6 @@
-import {
-  randomBytes,
-  scryptSync,
-  timingSafeEqual,
-  createHash,
-} from "node:crypto";
+import {randomBytes,createHash} from "node:crypto";
+import {Buffer} from "node:buffer";
+import {passwordHash,passwordMatches} from "./passwords.js";
 import nodemailer from "nodemailer";
 import { DISPLAY_ROLES } from "./roles.js";
 import { ensureSchema } from "./schema.js";
@@ -207,17 +204,6 @@ export async function createBackend(db) {
       ...item,
       ...overrides[item.id],
     }));
-  }
-  function passwordHash(password) {
-    const salt = randomBytes(16).toString("hex");
-    return salt + ":" + scryptSync(password, salt, 64).toString("hex");
-  }
-  function passwordMatches(password, hash) {
-    const [salt, digest] = hash.split(":");
-    return timingSafeEqual(
-      Buffer.from(digest, "hex"),
-      scryptSync(password, salt, 64),
-    );
   }
   async function rate(key, max, windowMs) {
     // Database transactions enforce the limit across separate Vercel instances.
